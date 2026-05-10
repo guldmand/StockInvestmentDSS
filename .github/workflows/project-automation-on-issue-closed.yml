@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OWNER: guldmand
+      OWNER: "@me"
       PROJECT_NUMBER: "11"
       ISSUE_URL: ${{ github.event.issue.html_url }}
       ISSUE_ACTION: ${{ github.event.action }}
