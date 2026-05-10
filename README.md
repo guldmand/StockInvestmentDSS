@@ -762,8 +762,6 @@ StockInvestmentDSS/                         # Repository root
 
 ## Canonical Storage Layout
 
-## Canonical Storage Layout
-
 Runtime data should not live permanently inside the Git repository.
 
 Canonical persistent storage is expected to live on guldNAS:
