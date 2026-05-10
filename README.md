@@ -1,272 +1,1196 @@
 # StockInvestmentDSS
 
+**Data-Driven Stock Investment Decision Support**  
+*A Reinforcement Learning Approach to Risk-Sensitive Sequential Portfolio Decisions*
+
+StockInvestmentDSS is a master thesis proof-of-concept for a data-driven decision support system for stock investors.
+
+The goal is not to build an autonomous trading bot or a system that claims to systematically beat the market. The goal is to design and implement a transparent, auditable and risk-aware decision support system that helps an investor translate a chosen strategy and risk profile into consistent buy/hold/sell recommendations.
+
+The system combines:
+
+- point-in-time market data handling
+- portfolio and strategy modeling
+- reinforcement learning experiments
+- risk-aware decision support
+- auditability and reproducibility
+- local, k3s and future cloud/GPU deployment paths
+
+---
+
+## Thesis Context
+
+This repository supports the MSc Data Science master thesis:
+
+**Data-Driven Stock Investment Decision Support**  
+**A Reinforcement Learning Approach to Risk-Sensitive Sequential Portfolio Decisions**
+
+Author: **Jannik Busse Guldmand**  
+Programme: **MSc Data Science, University of Southern Denmark**  
+Supervisor: **Professor Melih Kandemir**
+
+---
+
+## Core Problem
+
+Stock investors continuously face sequential decisions:
+
+- which stocks to buy
+- which stocks to hold
+- which stocks to sell
+- when to rebalance
+- when to reduce or increase risk exposure
+- when a change in market conditions may justify a change in strategy
+
+In practice, such decisions are often inconsistent, intuition-driven or insufficiently grounded in risk-aware data analysis.
+
+This project investigates how a decision support system can help investors make more consistent, data-driven and risk-aware decisions under uncertainty.
+
+---
+
+## Main Goal
+
+Build a working proof-of-concept DSS that can:
+
+1. ingest and store market data
+2. preserve point-in-time correctness
+3. let a user define a portfolio and investment strategy
+4. generate buy/hold/sell decision alternatives
+5. attach risk and uncertainty information to those decisions
+6. log enough information to reproduce and audit recommendations
+7. produce tables, figures and evidence for the thesis report
+
+---
+
+## What This System Is
+
+StockInvestmentDSS is:
+
+- a **decision support system**
+- a **research prototype**
+- a **PoC for a master thesis**
+- a **risk-aware investment assistant**
+- an **auditable data-driven architecture**
+- a **platform for FinRL / Gymnasium / RL experiments**
+
+---
+
+## What This System Is Not
+
+StockInvestmentDSS is not:
+
+- an autonomous trading bot
+- financial advice
+- a production trading platform
+- a market-beating claim
+- a high-frequency trading system
+- a black-box model-only project
+
+The system is designed to support human decision-making, not replace it.
+
+---
+
+## Current V1.0 PoC Scope
+
+The first proof-of-concept focuses on a minimal but complete vertical slice:
+
+```text
+Data
+→ Point-in-time storage
+→ Strategy definition
+→ Portfolio definition
+→ Decision engine
+→ Risk output
+→ Audit log
+→ Demo UI
+→ Thesis figures/results
+```
+
+The V1.0 PoC should prove that the architecture works end-to-end before more advanced RL, IQN and uncertainty-aware models are expanded.
+
+---
+
+## Architectural Principle
+
+The system is split into two operational speeds:
+
+```text
+Slow layer  = offline model training, backtesting and evaluation
+Fast layer  = near real-time decision support using available data, cached features and existing models
+```
+
+### Slow Layer
+
+The slow layer handles:
+
+- historical data preparation
+- FinRL experiments
+- Gymnasium environment experiments
+- model training
+- backtesting
+- baseline comparisons
+- evaluation metrics
+- model registry updates
+
+This layer may run on:
+
+- local development machine
+- GPU box
+- Vast.ai / Colab / cloud GPU
+- future scheduled infrastructure
+
+### Fast Layer
+
+The fast layer handles:
+
+- user login
+- stock lookup
+- portfolio creation
+- strategy creation
+- applying user constraints
+- generating decision alternatives
+- showing risk indicators
+- writing audit logs
+
+The fast layer should respond quickly and must not retrain a deep RL model for every user interaction.
+
+---
+
+## High-Level System Flow
+
+```text
+External APIs / FinRL / yfinance / future sources
+        ↓
+Raw file storage
+        ↓
+Point-in-time ingestion
+        ↓
+DuckDB canonical store
+        ↓
+Feature pipeline
+        ↓
+Strategy + portfolio state
+        ↓
+Decision engine
+        ↓
+Risk / uncertainty output
+        ↓
+Audit log
+        ↓
+Frontend / thesis demo
+```
+
+---
+
+## Core Research Direction
+
+The thesis investigates reinforcement learning as part of a risk-aware decision support architecture.
+
+The contribution is not only the RL model. The contribution is the system design around it:
+
+- point-in-time data constraints
+- auditable recommendation generation
+- baseline comparison
+- risk-sensitive evaluation
+- human-in-the-loop decision support
+- separation between offline training and online inference
+
+---
+
+## Evaluation Focus
+
+The PoC and thesis evaluation should not only report profit.
+
+Relevant metrics include:
+
+| Metric | Purpose |
+|---|---|
+| Cumulative return | Basic investment performance |
+| Annualized return | Comparable performance |
+| Sharpe ratio | Risk-adjusted return |
+| Maximum drawdown | Downside loss exposure |
+| VaR / CVaR proxy | Downside-risk analysis |
+| Turnover | Trading aggressiveness |
+| Decision traceability | Auditability |
+| Point-in-time correctness | Data leakage prevention |
+
+Baseline comparisons should include:
+
+- buy-and-hold
+- equal-weight portfolio
+- risk-adjusted decision-support output
+- later: FinRL / RL agent output
+- later: distributional / uncertainty-aware variant
+
+---
+
+## Technology Stack
+
+### Application
+
+| Area | Technology |
+|---|---|
+| Backend API | Python / FastAPI |
+| Frontend | Blazor WebAssembly or lightweight web demo |
+| Database | DuckDB |
+| Data files | Parquet / raw API snapshots |
+| Container runtime | Docker |
+| Local orchestration | Docker Compose |
+| Cluster orchestration | k3s on Turing Pi |
+| CI/CD | GitHub Actions |
+
+### Data Science / RL
+
+| Area | Technology |
+|---|---|
+| Financial RL framework | FinRL |
+| Environment interface | Gymnasium |
+| RL prototyping | ObjectRL |
+| Deep learning | PyTorch |
+| Market data | yfinance / FinRL data tools |
+| Additional ingestion | SDU_DataScienceTool |
+| Analysis | Python notebooks |
+| Storage analytics | DuckDB |
+
+### Infrastructure
+
+| Area | Target |
+|---|---|
+| Local development | MacBook Pro |
+| CPU services / orchestration | Turing Pi 2 with 4× RK1 nodes |
+| Persistent storage | guldNAS / Raspberry Pi NAS |
+| GPU training | Local GPU box / cloud GPU |
+| Public demo target | guldmand.com/data-science/master-thesis |
+
+---
+
+## Device Architecture
+
+```text
+MacBook Pro
+  - development
+  - notebooks
+  - Git
+  - local testing
+  - documentation
+
+GPU Box
+  - heavy RL training
+  - FinRL training
+  - PyTorch CUDA workloads
+  - model checkpoints
+
+Turing Pi 2 / k3s
+  - orchestration
+  - ingestion workers
+  - feature workers
+  - strategy/decision services
+  - monitoring / lightweight services
+
+guldNAS
+  - DuckDB storage
+  - Parquet datasets
+  - raw API snapshots
+  - model checkpoints
+  - logs
+  - backtest results
+
+Cloud GPU / Vast.ai / Colab
+  - optional heavy training
+  - larger experiments
+  - fallback compute
+```
+
+---
+
+## Repository Structure
+
+This repository uses the V4 README structure based on the V3 canonical architecture.
+
+Important correction from the original V1 structure:
+
+```text
+StockInvestmentDSS/ = repository root
+system/             = runnable DSS system / demo
+research/           = academic experiments and thesis work
+docs/               = architecture and infrastructure documentation
+.github/            = CI/CD automation
+```
+
+`system/` is not the whole repository root.  
+`system/` is the operational DSS system inside the repository.
+
+---
+
 ## Project Structure
 
-<pre>
-system/                                # Hele projektroden
-├─ docker-compose.yml                  # Container-orkestrering
-├─ .env                                # Miljøvariabler
-├─ .gitignore                          # Ignorerede filer
-├─ README.md                           # Projektoversigt
+## Project Structure
+
+```text
+StockInvestmentDSS/                         # Repository root
+├─ README.md                                # Main project overview and active README
+├─ .gitignore                               # Ignored files and folders
+├─ .env.example                             # Root-level environment template only
 │
-├─ runtime-data/                       # Lokal runtime-data
-│  └─ market_research.duckdb           # Central DuckDB-fil
-│
-├─ .github/                            # GitHub automation
-│  └─ workflows/                       # CI/CD workflows
-│     ├─ ci.yml                        # Tests og checks
-│     ├─ build-and-push.yml            # Build og push
-│     ├─ deploy.yml                    # Deployment workflow
-│     └─ build-demo-db.yml             # Demo-db build
-│
-├─ frontend/                           # Webklient
-│  ├─ Dockerfile                       # Frontend container build
-│  ├─ nginx.conf                       # Webserver konfiguration
-│  └─ src/                             # Blazor kildekode
-│     ├─ Frontend.csproj               # Projektfil
-│     ├─ Program.cs                    # App startup
-│     ├─ App.razor                     # Root component
-│     ├─ _Imports.razor                # Razor imports
-│     ├─ wwwroot/                      # Statiske filer
-│     │  ├─ index.html                 # Hovedside
-│     │  └─ appsettings.json           # Frontend settings
-│     ├─ Layout/                       # Side-layouts
-│     ├─ Pages/                        # Sider
-│     ├─ Components/                   # UI-komponenter
-│     ├─ Services/                     # Frontend services
-│     │  ├─ ApiClient.cs               # REST klient
-│     │  └─ GraphQLClientService.cs    # GraphQL klient
-│     └─ Models/                       # Frontend modeller
-│
-├─ backend/                            # API og datalag
-│  ├─ Dockerfile                       # Backend container build
-│  ├─ requirements.txt                 # Python dependencies
-│  ├─ app/                             # Backend applikation
-│  │  ├─ main.py                       # Backend entrypoint
-│  │  ├─ config.py                     # Backend konfiguration
-│  │  ├─ db.py                         # DuckDB adgang
-│  │  ├─ logging_config.py             # Logging opsætning
-│  │  │
-│  │  ├─ api/                          # REST endpoints
-│  │  │  ├─ routes_health.py           # Health endpoint
-│  │  │  ├─ routes_prices.py           # Pris endpoints
-│  │  │  ├─ routes_news.py             # Nyheds endpoints
-│  │  │  ├─ routes_strategies.py       # Strategi endpoints
-│  │  │  ├─ routes_feature_flags.py    # Feature flag endpoints
-│  │  │  ├─ routes_portfolio.py        # Portefølje endpoints
-│  │  │  ├─ routes_backtests.py        # Backtest endpoints
-│  │  │  ├─ routes_experiments.py      # Eksperiment endpoints
-│  │  │  └─ routes_predictions.py      # Prediction endpoints
-│  │  │
-│  │  ├─ graphql/                      # GraphQL lag
-│  │  │  ├─ schema.py                  # GraphQL schema
-│  │  │  ├─ queries.py                 # GraphQL queries
-│  │  │  └─ mutations.py               # GraphQL mutations
-│  │  │
-│  │  ├─ services/                     # Forretningslogik
-│  │  │  ├─ market_service.py          # Markedslogik
-│  │  │  ├─ news_service.py            # Nyhedslogik
-│  │  │  ├─ strategy_service.py        # Strategilogik
-│  │  │  ├─ feature_flag_service.py    # Flaglogik
-│  │  │  ├─ portfolio_service.py       # Porteføljelogik
-│  │  │  ├─ backtest_service.py        # Backtestlogik
-│  │  │  ├─ experiment_service.py      # Eksperimentlogik
-│  │  │  └─ prediction_service.py      # Predictionlogik
-│  │  │
-│  │  ├─ repositories/                 # Database queries
-│  │  │  ├─ market_repository.py       # Markedsqueries
-│  │  │  ├─ news_repository.py         # Nyhedsqueries
-│  │  │  ├─ strategy_repository.py     # Strategiqueries
-│  │  │  ├─ feature_flag_repository.py # Flagqueries
-│  │  │  ├─ portfolio_repository.py    # Porteføljequeries
-│  │  │  ├─ backtest_repository.py     # Backtestqueries
-│  │  │  ├─ experiment_repository.py   # Eksperimentqueries
-│  │  │  └─ prediction_repository.py   # Predictionqueries
-│  │  │
-│  │  └─ models/                       # DTO modeller
-│  │     ├─ dto_market.py              # Markeds DTO
-│  │     ├─ dto_news.py                # Nyheds DTO
-│  │     ├─ dto_strategy.py            # Strategi DTO
-│  │     ├─ dto_feature_flag.py        # Flag DTO
-│  │     ├─ dto_backtest.py            # Backtest DTO
-│  │     ├─ dto_experiment.py          # Eksperiment DTO
-│  │     └─ dto_prediction.py          # Prediction DTO
+├─ docs/                                    # Repository-level documentation
+│  ├─ architecture/                         # Architecture documentation
+│  │  ├─ device-architecture.md             # Mac, GPU box, Turing Pi, guldNAS and cloud mapping
+│  │  ├─ software-architecture.md           # DSS, RL, strategy layer, PIT and auditability
+│  │  ├─ deployment-architecture.md         # Local, test, staging, prod, GPU and cloud deployment mapping
+│  │  ├─ slow-fast-layer-architecture.md    # Offline training vs online decision support architecture
+│  │  └─ decision-audit-architecture.md     # Decision traceability and audit log design
 │  │
-│  └─ tests/                           # Backend tests
-│     ├─ test_health.py                # Health tests
-│     ├─ test_prices.py                # Pris tests
-│     ├─ test_news.py                  # Nyheds tests
-│     ├─ test_feature_flags.py         # Flag tests
-│     ├─ test_backtests.py             # Backtest tests
-│     └─ test_experiments.py           # Eksperiment tests
-│
-├─ finrl-worker/                       # RL worker
-│  ├─ Dockerfile                       # Worker container build
-│  ├─ requirements.txt                 # Worker dependencies
-│  ├─ worker/                          # Worker kode
-│  │  ├─ main.py                       # Worker entrypoint
-│  │  ├─ config.py                     # Worker konfiguration
-│  │  ├─ db.py                         # Worker DuckDB adgang
-│  │  │
-│  │  ├─ jobs/                         # Kørbare jobs
-│  │  │  ├─ train_model.py             # Træn model
-│  │  │  ├─ run_inference.py           # Kør inference
-│  │  │  ├─ run_backtest.py            # Kør backtest
-│  │  │  ├─ register_strategy.py       # Registrér strategi
-│  │  │  ├─ publish_strategy.py        # Publicér strategi
-│  │  │  ├─ compute_features.py        # Beregn features
-│  │  │  ├─ refresh_signals.py         # Opdatér signaler
-│  │  │  └─ evaluate_model.py          # Evaluer model
-│  │  │
-│  │  ├─ finrl/                        # FinRL integration
-│  │  │  ├─ env_builder.py             # Byg miljø
-│  │  │  ├─ feature_builder.py         # Byg state features
-│  │  │  ├─ model_loader.py            # Indlæs modeller
-│  │  │  ├─ policy_runner.py           # Kør policy
-│  │  │  └─ evaluation.py              # Worker evaluering
-│  │  │
-│  │  ├─ uncertainty/                  # Usikkerhedsmodeller
-│  │  │  ├─ iqn_wrapper.py             # IQN wrapper
-│  │  │  ├─ evidential_wrapper.py      # Evidential wrapper
-│  │  │  └─ risk_objectives.py         # Risikoobjektiver
-│  │  │
-│  │  └─ services/                     # Worker logik
-│  │     ├─ training_service.py        # Træningslogik
-│  │     ├─ inference_service.py       # Inferencelogik
-│  │     ├─ feature_flag_service.py    # Flaglogik
-│  │     ├─ strategy_registry_service.py # Strategiregister logik
-│  │     ├─ experiment_tracking_service.py # Eksperimenttracking
-│  │     └─ backtest_service.py        # Backtestlogik
+│  ├─ infrastructure/                       # Infrastructure and platform documentation
+│  │  ├─ cluster-inventory.md               # Permanent overview of machines, nodes and services
+│  │  ├─ guldnas-storage-layout.md          # Persistent NAS folder layout and mount assumptions
+│  │  ├─ turingpi-preflight-2026-05-03.md   # Raw Turing Pi health/status log before k3s
+│  │  └─ runbooks/                          # Operational step-by-step guides
+│  │     ├─ k3s-bootstrap.md                # k3s installation and node join guide
+│  │     ├─ guldnas-mount.md                # Mounting guldNAS on local/dev/test machines
+│  │     ├─ local-development.md            # Local development runbook
+│  │     └─ deployment-runbook.md           # Deployment and rollback runbook
 │  │
-│  └─ tests/                           # Worker tests
-│     ├─ test_training.py              # Træning tests
-│     ├─ test_registry.py              # Register tests
-│     ├─ test_backtest.py              # Backtest tests
-│     └─ test_uncertainty.py           # Usikkerhed tests
-│
-├─ sql/                                # Database blueprint
-│  ├─ 001_schemas.sql                  # Opret schemas
-│  ├─ 002_reference_tables.sql         # Reference tabeller
-│  ├─ 003_market_tables.sql            # Markedstabeller
-│  ├─ 004_news_tables.sql              # Nyhedstabeller
-│  ├─ 005_analytics_tables.sql         # Analytics tabeller
-│  ├─ 006_portfolio_tables.sql         # Porteføljetabeller
-│  ├─ 007_strategy_registry.sql        # Strategiregister tabeller
-│  ├─ 008_feature_flags.sql            # Feature flag tabeller
-│  ├─ 009_backtesting_tables.sql       # Backtest tabeller
-│  ├─ 010_experiment_tracking.sql      # Eksperiment tabeller
-│  ├─ 011_views.sql                    # SQL views
-│  ├─ 012_seed_feature_flags.sql       # Seed flags
+│  ├─ project-structure/                    # Documentation of project structure evolution
+│  │  ├─ project-structure-v1-original.md   # Original detailed V1 structure
+│  │  ├─ project-structure-v2-service-oriented.md # Service-oriented architecture proposal
+│  │  ├─ project-structure-v3-canonical.md  # Canonical architecture decision
+│  │  └─ project-structure-v4-readme.md     # Current README-oriented structure
 │  │
-│  └─ tests/                           # SQL datatests
-│     ├─ test_no_negative_prices.sql   # Ingen negative priser
-│     ├─ test_unique_news_ids.sql      # Unikke nyheds-id'er
-│     ├─ test_feature_flags_exist.sql  # Flags findes
-│     ├─ test_active_strategy_unique.sql # Aktiv strategi unik
-│     ├─ test_experiment_ids_unique.sql # Eksperiment-id unikke
-│     └─ test_backtest_results_not_null.sql # Backtests ikke tomme
+│  └─ thesis/                               # Thesis-specific notes and planning
+│     ├─ problem-formulation.md             # Thesis problem formulation
+│     ├─ research-questions.md              # Research questions and scope
+│     ├─ methodology-notes.md               # Methodology notes and assumptions
+│     ├─ evaluation-plan.md                 # Evaluation and metrics plan
+│     └─ ai-usage-disclosure.md             # AI usage disclosure for thesis/report
 │
-├─ scripts/                            # Drifts- og datajobs
-│  ├─ apply_migrations.py              # Kør migrations
-│  ├─ init_db.py                       # Initialisér database
-│  ├─ seed_demo_data.py                # Seed demo-data
-│  ├─ ingest_prices.py                 # Importér priser
-│  ├─ ingest_news.py                   # Importér nyheder
-│  ├─ ingest_macro.py                  # Importér makrodata
-│  ├─ ingest_company_fundamentals.py   # Importér fundamentaler
-│  ├─ run_sql_tests.py                 # Kør SQL tests
-│  ├─ export_snapshot.py               # Eksportér snapshot
-│  ├─ import_snapshot.py               # Importér snapshot
-│  ├─ register_strategy.py             # Registrér strategi
-│  ├─ activate_strategy.py             # Aktivér strategi
-│  ├─ build_point_in_time_dataset.py   # Byg PIT datasæt
-│  ├─ run_walk_forward_backtest.py     # Kør walk-forward
-│  └─ register_experiment.py           # Registrér eksperiment
+├─ project-management/                      # GitHub project board automation and scripts
+│  ├─ README.md                             # Project-management script overview
+│  └─ scripts/                              # gh CLI / project automation scripts
+│     ├─ 1_create_board_labels_milestones.sh # Create labels, milestones and initial board setup
+│     ├─ 2_create_issues.sh                 # Create initial PoC issues
+│     ├─ 3_set_project_field_values.sh      # Set project fields on existing issues
+│     ├─ 6_add_missing_v1_poc_tasks.sh      # Add missing V1.0 PoC tasks
+│     ├─ 7_fix_priority_fields.sh           # Move priority labels into real Priority field
+│     ├─ 8_fix_categories_and_status.sh     # Fix category/status project fields
+│     └─ 9_add_risk_adjusted_baseline_comparison.sh # Add missing baseline comparison issue
 │
-├─ observability/                      # Logging og monitorering
-│  ├─ elasticsearch/                   # Elastic opsætning
-│  │  └─ README.md                     # Elastic noter
-│  ├─ kibana/                          # Kibana opsætning
-│  │  └─ README.md                     # Kibana noter
-│  ├─ filebeat/                        # Log shipping
-│  │  ├─ filebeat.yml                  # Filebeat config
-│  │  └─ README.md                     # Filebeat noter
-│  └─ logstash/                        # Log pipeline
-│     ├─ pipeline/                     # Logstash pipelines
-│     │  └─ logstash.conf              # Pipeline config
-│     └─ README.md                     # Logstash noter
+├─ system/                                  # Runnable DSS system and deployment target
+│  ├─ README.md                             # System-specific run and architecture notes
+│  ├─ docker-compose.yml                    # Main local Docker Compose entrypoint
+│  ├─ .env                                  # Local environment file; ignored by Git
+│  ├─ .env.example                          # System-level environment template
+│  │
+│  ├─ runtime-data/                         # Local runtime data; ignored by Git
+│  │  ├─ market_research.duckdb             # Local DuckDB development database
+│  │  ├─ logs/                              # Local application logs
+│  │  └─ tmp/                               # Temporary runtime files
+│  │
+│  ├─ frontend/                             # Web client / DSS demo UI
+│  │  ├─ Dockerfile                         # Frontend container build
+│  │  ├─ nginx.conf                         # Frontend web server configuration
+│  │  └─ src/                               # Frontend source code
+│  │     ├─ Frontend.csproj                 # Blazor project file
+│  │     ├─ Program.cs                      # Frontend application startup
+│  │     ├─ App.razor                       # Root Blazor component
+│  │     ├─ _Imports.razor                  # Shared Razor imports
+│  │     ├─ wwwroot/                        # Static frontend assets
+│  │     │  ├─ index.html                   # Frontend host page
+│  │     │  └─ appsettings.json             # Frontend runtime settings
+│  │     ├─ Layout/                         # Page layouts
+│  │     ├─ Pages/                          # Application pages
+│  │     ├─ Components/                     # Reusable UI components
+│  │     │  ├─ Login/                       # Login and demo-user UI
+│  │     │  ├─ Portfolio/                   # Portfolio builder UI
+│  │     │  ├─ Strategy/                    # Strategy builder UI
+│  │     │  ├─ DecisionCards/               # Buy/hold/sell decision cards
+│  │     │  ├─ Risk/                        # Risk indicator UI
+│  │     │  └─ Charts/                      # Charts and thesis/demo visualizations
+│  │     ├─ Services/                       # Frontend service clients
+│  │     │  ├─ ApiClient.cs                 # REST API client
+│  │     │  └─ GraphQLClientService.cs      # GraphQL client service
+│  │     └─ Models/                         # Frontend DTOs and view models
+│  │
+│  ├─ backend/                              # FastAPI backend / DSS API
+│  │  ├─ Dockerfile                         # Backend container build
+│  │  ├─ requirements.txt                   # Python backend dependencies
+│  │  ├─ app/                               # Backend application code
+│  │  │  ├─ main.py                         # FastAPI application entrypoint
+│  │  │  ├─ config.py                       # Backend configuration
+│  │  │  ├─ db.py                           # DuckDB connection handling
+│  │  │  ├─ logging_config.py               # Logging configuration
+│  │  │  │
+│  │  │  ├─ api/                            # REST API routes
+│  │  │  │  ├─ routes_health.py             # Health check endpoint
+│  │  │  │  ├─ routes_auth.py               # Login/demo user endpoints
+│  │  │  │  ├─ routes_prices.py             # Price and market-data endpoints
+│  │  │  │  ├─ routes_stocks.py             # Stock lookup endpoints
+│  │  │  │  ├─ routes_news.py               # News / external signal endpoints
+│  │  │  │  ├─ routes_strategies.py         # Strategy endpoints
+│  │  │  │  ├─ routes_portfolio.py          # Portfolio endpoints
+│  │  │  │  ├─ routes_decisions.py          # Decision-support endpoints
+│  │  │  │  ├─ routes_risk.py               # Risk metric endpoints
+│  │  │  │  ├─ routes_audit.py              # Audit log endpoints
+│  │  │  │  ├─ routes_backtests.py          # Backtest endpoints
+│  │  │  │  ├─ routes_experiments.py        # Experiment metadata endpoints
+│  │  │  │  └─ routes_predictions.py        # Prediction/model-output endpoints
+│  │  │  │
+│  │  │  ├─ graphql/                        # Optional GraphQL layer
+│  │  │  │  ├─ schema.py                    # GraphQL schema
+│  │  │  │  ├─ queries.py                   # GraphQL queries
+│  │  │  │  └─ mutations.py                 # GraphQL mutations
+│  │  │  │
+│  │  │  ├─ services/                       # Backend business logic
+│  │  │  │  ├─ auth_service.py              # Demo login/user logic
+│  │  │  │  ├─ market_service.py            # Market-data logic
+│  │  │  │  ├─ stock_lookup_service.py      # Stock search/lookup logic
+│  │  │  │  ├─ news_service.py              # News/external signal logic
+│  │  │  │  ├─ strategy_service.py          # Strategy handling logic
+│  │  │  │  ├─ portfolio_service.py         # Portfolio logic
+│  │  │  │  ├─ decision_service.py          # Buy/hold/sell decision logic
+│  │  │  │  ├─ risk_service.py              # Risk metric calculation logic
+│  │  │  │  ├─ audit_service.py             # Decision audit logging logic
+│  │  │  │  ├─ backtest_service.py          # Backtest orchestration logic
+│  │  │  │  ├─ experiment_service.py        # Experiment metadata logic
+│  │  │  │  └─ prediction_service.py        # Model prediction/inference logic
+│  │  │  │
+│  │  │  ├─ repositories/                   # Database access layer
+│  │  │  │  ├─ user_repository.py           # User/demo-user queries
+│  │  │  │  ├─ market_repository.py         # Market-data queries
+│  │  │  │  ├─ raw_data_repository.py       # Raw API response metadata queries
+│  │  │  │  ├─ feature_repository.py        # Feature table queries
+│  │  │  │  ├─ strategy_repository.py       # Strategy queries
+│  │  │  │  ├─ portfolio_repository.py      # Portfolio queries
+│  │  │  │  ├─ decision_repository.py       # Decision output queries
+│  │  │  │  ├─ audit_repository.py          # Audit log queries
+│  │  │  │  ├─ backtest_repository.py       # Backtest result queries
+│  │  │  │  ├─ experiment_repository.py     # Experiment metadata queries
+│  │  │  │  └─ model_registry_repository.py # Model registry queries
+│  │  │  │
+│  │  │  ├─ models/                         # Backend DTO models
+│  │  │  │  ├─ dto_user.py                  # User DTO
+│  │  │  │  ├─ dto_market.py                # Market-data DTO
+│  │  │  │  ├─ dto_stock.py                 # Stock DTO
+│  │  │  │  ├─ dto_strategy.py              # Strategy DTO
+│  │  │  │  ├─ dto_portfolio.py             # Portfolio DTO
+│  │  │  │  ├─ dto_decision.py              # Decision DTO
+│  │  │  │  ├─ dto_risk.py                  # Risk metric DTO
+│  │  │  │  ├─ dto_audit.py                 # Audit log DTO
+│  │  │  │  ├─ dto_backtest.py              # Backtest DTO
+│  │  │  │  ├─ dto_experiment.py            # Experiment DTO
+│  │  │  │  └─ dto_prediction.py            # Prediction DTO
+│  │  │  │
+│  │  │  └─ schemas/                        # Validation schemas
+│  │  │     ├─ strategy_schema.py           # Strategy JSON schema
+│  │  │     ├─ portfolio_schema.py          # Portfolio schema
+│  │  │     ├─ decision_schema.py           # Decision schema
+│  │  │     └─ risk_schema.py               # Risk output schema
+│  │  │
+│  │  └─ tests/                             # Backend tests
+│  │     ├─ test_health.py                  # Health endpoint tests
+│  │     ├─ test_auth.py                    # Login/demo user tests
+│  │     ├─ test_prices.py                  # Price endpoint tests
+│  │     ├─ test_stock_lookup.py            # Stock lookup tests
+│  │     ├─ test_strategies.py              # Strategy tests
+│  │     ├─ test_portfolio.py               # Portfolio tests
+│  │     ├─ test_decisions.py               # Decision engine tests
+│  │     ├─ test_audit.py                   # Audit log tests
+│  │     └─ test_backtests.py               # Backtest tests
+│  │
+│  ├─ workers/                              # Background workers and batch jobs
+│  │  ├─ ingestion-worker/                  # API/data ingestion worker
+│  │  │  ├─ Dockerfile                      # Ingestion worker container build
+│  │  │  ├─ requirements.txt                # Ingestion worker dependencies
+│  │  │  ├─ worker.py                       # Ingestion worker entrypoint
+│  │  │  ├─ sources/                        # External data source adapters
+│  │  │  │  ├─ yfinance_source.py           # yfinance data source
+│  │  │  │  ├─ finrl_source.py              # FinRL data source
+│  │  │  │  ├─ gdelt_source.py              # GDELT/news placeholder source
+│  │  │  │  ├─ macro_source.py              # Macro indicator placeholder source
+│  │  │  │  └─ fundamentals_source.py       # Company fundamentals placeholder source
+│  │  │  └─ tests/                          # Ingestion worker tests
+│  │  │
+│  │  ├─ feature-worker/                    # Feature engineering worker
+│  │  │  ├─ Dockerfile                      # Feature worker container build
+│  │  │  ├─ requirements.txt                # Feature worker dependencies
+│  │  │  ├─ worker.py                       # Feature worker entrypoint
+│  │  │  ├─ features/                       # Feature generation code
+│  │  │  │  ├─ technical_indicators.py      # Technical indicators
+│  │  │  │  ├─ returns.py                   # Return calculations
+│  │  │  │  ├─ volatility.py                # Volatility features
+│  │  │  │  ├─ downside_risk.py             # Downside-risk features
+│  │  │  │  └─ feature_store.py             # Feature storage logic
+│  │  │  └─ tests/                          # Feature worker tests
+│  │  │
+│  │  ├─ strategy-worker/                   # Strategy validation and transformation worker
+│  │  │  ├─ Dockerfile                      # Strategy worker container build
+│  │  │  ├─ requirements.txt                # Strategy worker dependencies
+│  │  │  ├─ worker.py                       # Strategy worker entrypoint
+│  │  │  ├─ strategies/                     # Strategy logic
+│  │  │  │  ├─ predefined.py                # Predefined strategy library
+│  │  │  │  ├─ custom_strategy.py           # Custom strategy handling
+│  │  │  │  ├─ constraints.py               # Locked assets and user constraints
+│  │  │  │  └─ strategy_validation.py       # Strategy validation
+│  │  │  └─ tests/                          # Strategy worker tests
+│  │  │
+│  │  ├─ decision-worker/                   # Decision-support worker
+│  │  │  ├─ Dockerfile                      # Decision worker container build
+│  │  │  ├─ requirements.txt                # Decision worker dependencies
+│  │  │  ├─ worker.py                       # Decision worker entrypoint
+│  │  │  ├─ decision/                       # Decision engine code
+│  │  │  │  ├─ decision_engine.py           # Main decision engine
+│  │  │  │  ├─ alternatives.py              # Decision alternative generation
+│  │  │  │  ├─ transaction_costs.py         # Transaction cost penalty logic
+│  │  │  │  ├─ stop_loss.py                 # Stop-loss trigger logic
+│  │  │  │  ├─ take_profit.py               # Take-profit trigger logic
+│  │  │  │  └─ audit_writer.py              # Decision audit writer
+│  │  │  └─ tests/                          # Decision worker tests
+│  │  │
+│  │  ├─ finrl-worker/                      # FinRL / RL training and evaluation worker
+│  │  │  ├─ Dockerfile                      # FinRL worker container build
+│  │  │  ├─ requirements.txt                # FinRL worker dependencies
+│  │  │  ├─ train.py                        # Train FinRL/RL agents
+│  │  │  ├─ evaluate.py                     # Evaluate trained agents
+│  │  │  ├─ configs/                        # Training and evaluation configs
+│  │  │  ├─ agents/                         # Agent implementations or adapters
+│  │  │  ├─ baselines/                      # Baseline strategy implementations
+│  │  │  │  ├─ buy_and_hold.py              # Buy-and-hold baseline
+│  │  │  │  ├─ equal_weight.py              # Equal-weight baseline
+│  │  │  │  └─ risk_adjusted.py             # Risk-adjusted baseline/proxy
+│  │  │  └─ tests/                          # FinRL worker tests
+│  │  │
+│  │  └─ training-job/                      # Generic offline training job container
+│  │     ├─ Dockerfile                      # Training job container build
+│  │     ├─ requirements.txt                # Training job dependencies
+│  │     ├─ run_training_job.py             # Generic training job entrypoint
+│  │     └─ configs/                        # Training job configuration files
+│  │
+│  ├─ packages/                             # Shared internal Python packages
+│  │  ├─ dss-core/                          # Shared domain models and utilities
+│  │  │  ├─ pyproject.toml                  # Package metadata
+│  │  │  └─ dss_core/                       # dss-core package source
+│  │  │     ├─ domain/                      # Shared domain objects
+│  │  │     ├─ types/                       # Shared types
+│  │  │     ├─ errors/                      # Shared exceptions
+│  │  │     └─ utils/                       # Shared utilities
+│  │  │
+│  │  ├─ dss-data/                          # Shared data access and PIT utilities
+│  │  │  ├─ pyproject.toml                  # Package metadata
+│  │  │  └─ dss_data/                       # dss-data package source
+│  │  │     ├─ duckdb_client.py             # DuckDB client wrapper
+│  │  │     ├─ point_in_time.py             # Point-in-time query helpers
+│  │  │     ├─ raw_storage.py               # Raw API response storage
+│  │  │     ├─ parquet_layout.py            # Parquet folder layout helpers
+│  │  │     └─ snapshot_logging.py          # Dataset build and snapshot logging
+│  │  │
+│  │  ├─ dss-env/                           # Custom Gymnasium trading environment
+│  │  │  ├─ pyproject.toml                  # Package metadata
+│  │  │  └─ dss_env/                        # dss-env package source
+│  │  │     ├─ stock_investment_env.py      # Long-only StockInvestmentEnv
+│  │  │     ├─ state.py                     # State representation
+│  │  │     ├─ actions.py                   # Action space definition
+│  │  │     ├─ rewards.py                   # Reward function definitions
+│  │  │     └─ validation.py                # Environment validation helpers
+│  │  │
+│  │  ├─ dss-strategies/                    # Strategy schema and validation package
+│  │  │  ├─ pyproject.toml                  # Package metadata
+│  │  │  └─ dss_strategies/                 # dss-strategies package source
+│  │  │     ├─ predefined.py                # Predefined strategy profiles
+│  │  │     ├─ schema.py                    # Strategy JSON schema
+│  │  │     ├─ constraints.py               # Constraint logic
+│  │  │     └─ validation.py                # Strategy validation helpers
+│  │  │
+│  │  ├─ dss-risk/                          # Risk and uncertainty utility package
+│  │  │  ├─ pyproject.toml                  # Package metadata
+│  │  │  └─ dss_risk/                       # dss-risk package source
+│  │  │     ├─ sharpe.py                    # Sharpe-style metrics
+│  │  │     ├─ drawdown.py                  # Drawdown metrics
+│  │  │     ├─ var_cvar.py                  # VaR / CVaR helpers
+│  │  │     ├─ quantiles.py                 # Quantile-risk helpers
+│  │  │     └─ uncertainty.py               # Uncertainty proxy helpers
+│  │  │
+│  │  └─ dss-finrl-adapter/                 # FinRL integration adapter package
+│  │     ├─ pyproject.toml                  # Package metadata
+│  │     └─ dss_finrl_adapter/              # dss-finrl-adapter package source
+│  │        ├─ data_adapter.py              # FinRL data adapter
+│  │        ├─ env_adapter.py               # FinRL/Gymnasium environment adapter
+│  │        ├─ agent_adapter.py             # FinRL agent adapter
+│  │        └─ metrics_adapter.py           # FinRL metrics adapter
+│  │
+│  ├─ sql/                                  # DuckDB schema, migrations and data tests
+│  │  ├─ schemas/                           # SQL schema files
+│  │  │  ├─ 001_raw_market_data.sql         # Raw market data schema
+│  │  │  ├─ 002_point_in_time_metadata.sql  # Point-in-time metadata schema
+│  │  │  ├─ 003_features.sql                # Feature table schema
+│  │  │  ├─ 004_portfolios.sql              # Portfolio table schema
+│  │  │  ├─ 005_strategies.sql              # Strategy table schema
+│  │  │  ├─ 006_decisions.sql               # Decision output schema
+│  │  │  ├─ 007_audit_log.sql               # Audit log schema
+│  │  │  ├─ 008_backtests.sql               # Backtest result schema
+│  │  │  ├─ 009_experiments.sql             # Experiment metadata schema
+│  │  │  └─ 010_model_registry.sql          # Model registry schema
+│  │  │
+│  │  ├─ migrations/                        # DuckDB migration scripts
+│  │  ├─ seeds/                             # Demo seed data
+│  │  └─ tests/                             # SQL data quality tests
+│  │     ├─ test_no_lookahead.sql           # Test against look-ahead leakage
+│  │     ├─ test_primary_keys.sql           # Primary key and uniqueness tests
+│  │     └─ test_required_columns.sql       # Required column tests
+│  │
+│  ├─ configs/                              # Environment-specific configuration
+│  │  ├─ local.yaml                         # Local development config
+│  │  ├─ test.yaml                          # k3s test environment config
+│  │  ├─ staging.yaml                       # Staging config
+│  │  ├─ prod.yaml                          # Production/demo config
+│  │  └─ gpu.yaml                           # GPU training config
+│  │
+│  ├─ infra/                                # System infrastructure definitions
+│  │  ├─ docker/                            # Docker build assets
+│  │  │  ├─ backend.Dockerfile              # Backend Dockerfile variant
+│  │  │  ├─ frontend.Dockerfile             # Frontend Dockerfile variant
+│  │  │  ├─ worker.Dockerfile               # Generic worker Dockerfile
+│  │  │  └─ training.Dockerfile             # Training job Dockerfile
+│  │  │
+│  │  ├─ compose/                           # Docker Compose files
+│  │  │  ├─ docker-compose.local.yml        # Local development compose setup
+│  │  │  ├─ docker-compose.test.yml         # Test compose setup
+│  │  │  └─ docker-compose.gpu.yml          # GPU training compose setup
+│  │  │
+│  │  └─ k8s/                               # Kubernetes/k3s manifests
+│  │     ├─ namespaces/                     # Namespace definitions
+│  │     │  ├─ dss-dev.yaml                 # Development namespace
+│  │     │  ├─ dss-test.yaml                # Test namespace
+│  │     │  └─ dss-prod.yaml                # Production/demo namespace
+│  │     │
+│  │     ├─ base/                           # Base Kubernetes manifests
+│  │     │  ├─ backend-deployment.yaml      # Backend deployment
+│  │     │  ├─ frontend-deployment.yaml     # Frontend deployment
+│  │     │  ├─ ingestion-worker.yaml        # Ingestion worker deployment
+│  │     │  ├─ feature-worker.yaml          # Feature worker deployment
+│  │     │  ├─ decision-worker.yaml         # Decision worker deployment
+│  │     │  ├─ services.yaml                # Kubernetes services
+│  │     │  └─ ingress.yaml                 # Ingress configuration
+│  │     │
+│  │     ├─ overlays/                       # Environment-specific k8s overlays
+│  │     │  ├─ test/                        # Test overlay for Turing Pi/k3s
+│  │     │  ├─ staging/                     # Staging overlay
+│  │     │  └─ prod/                        # Production/demo overlay
+│  │     │
+│  │     └─ jobs/                           # Kubernetes jobs and cronjobs
+│  │        ├─ ingestion-cronjob.yaml       # Scheduled ingestion job
+│  │        ├─ feature-build-job.yaml       # Feature build job
+│  │        ├─ backtest-job.yaml            # Backtest job
+│  │        └─ training-job.yaml            # RL training job
+│  │
+│  └─ scripts/                              # Local scripts and operational commands
+│     ├─ dev_start.sh                       # Start local development environment
+│     ├─ build_demo_db.py                   # Build local demo DuckDB database
+│     ├─ ingest_market_data.py              # Ingest market data
+│     ├─ build_features.py                  # Build features
+│     ├─ run_backtest.py                    # Run backtest
+│     ├─ export_results.py                  # Export thesis-ready results
+│     └─ smoke_test.py                      # Run local smoke test
 │
-├─ models/                             # Model artifacts
-│  ├─ trained/                         # Trænede modeller
-│  │  ├─ .gitkeep                      # Behold mappe
-│  │  └─ README.md                     # Model noter
-│  ├─ exported/                        # Publicerede modeller
-│  │  ├─ .gitkeep                      # Behold mappe
-│  │  └─ README.md                     # Export noter
-│  └─ metadata/                        # Model metadata
-│     └─ .gitkeep                      # Behold mappe
+├─ research/                                # Academic experiments, evaluation and thesis work
+│  ├─ README.md                             # Research workspace overview
+│  │
+│  ├─ notebooks/                            # Research notebooks
+│  │  ├─ 00_data_check.ipynb                # Data availability and sanity checks
+│  │  ├─ 01_finrl_baseline.ipynb            # FinRL baseline experiment
+│  │  ├─ 02_gymnasium_env.ipynb             # Custom Gymnasium environment experiment
+│  │  ├─ 03_baseline_comparison.ipynb       # Buy-and-hold/equal-weight/risk baseline comparison
+│  │  ├─ 04_iqn_experiment.ipynb            # IQN-style experiment
+│  │  ├─ 05_uncertainty_proxy.ipynb         # Evidential/uncertainty proxy experiment
+│  │  └─ 06_thesis_figures.ipynb            # Generate thesis figures
+│  │
+│  ├─ experiments/                          # Structured experiment folders
+│  │  ├─ finrl_baseline/                    # Standard FinRL baseline experiments
+│  │  ├─ buy_and_hold/                      # Buy-and-hold baseline experiments
+│  │  ├─ equal_weight/                      # Equal-weight baseline experiments
+│  │  ├─ risk_adjusted_baseline/            # Risk-adjusted baseline comparison
+│  │  ├─ iqn/                               # IQN/distributional RL experiments
+│  │  ├─ uncertainty/                       # Uncertainty-aware experiments
+│  │  └─ robustness/                        # Robustness and sensitivity experiments
+│  │
+│  ├─ configs/                              # Research experiment configs
+│  │  ├─ experiment_001_finrl_baseline.yaml # FinRL baseline config
+│  │  ├─ experiment_002_baselines.yaml      # Baseline comparison config
+│  │  ├─ experiment_003_risk_adjusted.yaml  # Risk-adjusted baseline config
+│  │  └─ experiment_004_iqn_extension.yaml  # IQN extension config
+│  │
+│  ├─ results/                              # Research outputs
+│  │  ├─ raw/                               # Raw experiment outputs
+│  │  ├─ processed/                         # Processed experiment outputs
+│  │  ├─ tables/                            # Thesis-ready tables
+│  │  ├─ figures/                           # Thesis-ready figures
+│  │  └─ logs/                              # Experiment logs
+│  │
+│  ├─ report/                               # Thesis LaTeX report
+│  │  ├─ report.tex                         # Main LaTeX report file
+│  │  ├─ references.bib                     # BibTeX reference file
+│  │  ├─ sections/                          # Report sections
+│  │  │  ├─ 01_introduction.tex             # Introduction
+│  │  │  ├─ 02_background.tex               # Background and related work
+│  │  │  ├─ 03_system_design.tex            # System design
+│  │  │  ├─ 04_methodology.tex              # Methodology
+│  │  │  ├─ 05_results.tex                  # Results / case demonstration
+│  │  │  ├─ 06_discussion.tex               # Discussion and limitations
+│  │  │  └─ 07_conclusion.tex               # Conclusion and future work
+│  │  ├─ figures/                           # Report figure exports
+│  │  ├─ tables/                            # Report table exports
+│  │  └─ build.sh                           # Reproducible report build command
+│  │
+│  └─ papers/                               # Local paper notes only; PDFs ignored by Git
+│     └─ README.md                          # Paper/reference notes
 │
-├─ logs/                               # Lokale logs
-│  ├─ backend/                         # Backend logs
-│  │  └─ .gitkeep                      # Behold mappe
-│  ├─ finrl-worker/                    # Worker logs
-│  │  └─ .gitkeep                      # Behold mappe
-│  └─ .gitkeep                         # Behold mappe
+├─ data/                                    # Data documentation only; large data is external
+│  └─ README.md                             # Explains that runtime data lives on guldNAS/runtime-data
 │
-└─ docs/                               # Projektdokumentation
-   ├─ architecture.md                  # Arkitekturguide
-   ├─ deployment.md                    # Deploy guide
-   ├─ data-model.md                    # Datamodel guide
-   ├─ feature-flags.md                 # Flag guide
-   ├─ strategy-registry.md             # Strategiguide
-   ├─ observability.md                 # Logging guide
-   ├─ backtesting.md                   # Backtest guide
-   ├─ experiments.md                   # Eksperiment guide
-   └─ evaluation.md                    # Evalueringsguide
-
-
-research/
-├─ notebooks/                          # Interaktive analyser
-│  ├─ 01_explore_market_data.ipynb     # Udforsk markedsdata
-│  ├─ 02_explore_news.ipynb            # Udforsk nyheder
-│  ├─ 03_feature_engineering.ipynb     # Prototype features
-│  ├─ 04_finrl_training.ipynb          # Prototype træning
-│  ├─ 05_backtest_evaluation.ipynb     # Evaluér backtests
-│  ├─ 06_publish_strategy.ipynb        # Publicér strategi
-│  ├─ 07_distributional_rl_experiment.ipynb # Test distributional RL
-│  └─ 08_uncertainty_analysis.ipynb    # Analysér usikkerhed
-│
-└─ research/                           # Akademisk motor
-   ├─ experiments/                     # Eksperimentkode
-   │  ├─ experiment_config.yaml        # Eksperiment settings
-   │  ├─ experiment_runner.py          # Kør eksperimenter
-   │  ├─ experiment_registry.py        # Registrér eksperimenter
-   │  └─ compare_experiments.py        # Sammenlign eksperimenter
+└─ .github/                                 # GitHub automation
+   ├─ workflows/                            # GitHub Actions workflows
+   │  ├─ ci.yml                             # Main CI workflow
+   │  ├─ python-tests.yml                   # Python test workflow
+   │  ├─ docker-build.yml                   # Docker build workflow
+   │  ├─ docker-compose-smoke-test.yml      # Docker Compose smoke test workflow
+   │  ├─ build-and-push.yml                 # Build and push container images
+   │  ├─ deploy-test.yml                    # Deploy to test/k3s environment
+   │  ├─ deploy-prod.yml                    # Deploy to production/demo environment
+   │  ├─ release.yml                        # Release tagging/versioning workflow
+   │  └─ dependency-scan.yml                # Dependency/security scanning workflow
    │
-   ├─ backtesting/                     # Backtesting kode
-   │  ├─ walk_forward.py               # Walk-forward logik
-   │  ├─ point_in_time_loader.py       # PIT dataloading
-   │  ├─ portfolio_simulator.py        # Porteføljesimulator
-   │  └─ evaluation_metrics.py         # Backtest metrics
-   │
-   ├─ feature_engineering/             # Featureudvikling
-   │  ├─ price_features.py             # Prisfeatures
-   │  ├─ news_features.py              # Nyhedsfeatures
-   │  ├─ macro_features.py             # Makrofeatures
-   │  ├─ fundamental_features.py       # Fundamentalfeatures
-   │  └─ feature_pipeline.py           # Feature pipeline
-   │
-   ├─ uncertainty_models/              # Usikkerhedsmetoder
-   │  ├─ evidential_learning.py        # Evidential læring
-   │  ├─ distributional_rl_helpers.py  # Distributional helpers
-   │  ├─ uncertainty_scoring.py        # Usikkerhedsscorer
-   │  └─ risk_sensitive_decision_rules.py # Risiko beslutningsregler
-   │
-   └─ evaluation/                      # Evalueringskode
-      ├─ sharpe.py                     # Sharpe beregning
-      ├─ drawdown.py                   # Drawdown beregning
-      ├─ downside_risk.py              # Downside risk
-      └─ regime_analysis.py            # Regimeanalyse
+   └─ dependabot.yml                        # Dependabot dependency update configuration
+```
 
+---
 
-</pre>
+## Canonical Storage Layout
+
+Runtime data should not live permanently inside the Git repository.
+
+Canonical persistent storage is expected to live on guldNAS:
+
+```text
+/mnt/nas/stockinvestmentdss/
+├── duckdb/
+│   └── market_research.duckdb
+├── parquet/
+│   ├── raw/
+│   ├── curated/
+│   └── features/
+├── raw-api-responses/
+│   ├── yfinance/
+│   ├── finrl/
+│   ├── gdelt/
+│   ├── macro/
+│   └── fundamentals/
+├── model-checkpoints/
+│   ├── finrl/
+│   ├── iqn/
+│   └── baselines/
+├── backtest-results/
+├── experiment-artifacts/
+├── reports/
+└── logs/
+```
+
+Local development may use:
+
+```text
+system/runtime-data/market_research.duckdb
+```
+
+but the long-term canonical path should be:
+
+```text
+/mnt/nas/stockinvestmentdss/duckdb/market_research.duckdb
+```
+
+---
+
+## Point-in-Time Data Principle
+
+The system must distinguish between:
+
+```text
+event_time     = when the market/company event happened
+published_at   = when the information became publicly available
+ingested_at    = when this system received/stored the information
+decision_time  = when the DSS generated a recommendation
+```
+
+For any historical decision at time `t`, the system may only use data where:
+
+```text
+known_at <= t
+```
+
+This is required to avoid look-ahead bias.
+
+---
+
+## Decision Audit Principle
+
+Every generated recommendation should be reproducible.
+
+A decision should be linked to:
+
+- user / portfolio
+- selected strategy
+- decision timestamp
+- available data snapshot
+- feature build ID
+- model ID or rule engine version
+- input state
+- generated alternatives
+- risk metrics
+- final recommendation
+- explanation / warning
+- audit log entry
+
+---
+
+## Strategy Layer
+
+Strategies are represented as structured configuration rather than free text.
+
+Example:
+
+```json
+{
+  "strategy_name": "Balanced long-only strategy",
+  "risk_profile": "balanced",
+  "investment_horizon": "medium",
+  "allowed_assets": ["AAPL", "MSFT", "NVDA"],
+  "locked_assets": ["NVDA"],
+  "max_position_size": 0.25,
+  "stop_loss": 0.10,
+  "take_profit": 0.25,
+  "objective": "risk_adjusted_return",
+  "allow_strategy_switch": true
+}
+```
+
+The strategy layer is used by both:
+
+- the online decision engine
+- the offline evaluation/backtesting pipeline
+
+---
+
+## Reinforcement Learning Scope
+
+The project uses RL as one component inside a broader DSS.
+
+The intended progression is:
+
+```text
+1. Simple baseline decision logic
+2. Buy-and-hold and equal-weight baselines
+3. Standard FinRL agent
+4. Custom Gymnasium environment
+5. Risk-aware output
+6. IQN-style quantile output
+7. Evidential uncertainty proxy
+8. Full IQN / uncertainty-aware extension if time permits
+```
+
+For V1.0, the most important outcome is a functioning decision-support pipeline.
+
+Advanced IQN and evidential uncertainty can be treated as extensions if needed.
+
+---
+
+## V1.0 Definition of Done
+
+The V1.0 PoC is considered successful if the following works end-to-end:
+
+- local app starts
+- front page loads
+- login or demo user flow works
+- user can search or select a stock
+- user can create a portfolio
+- user can define or select a strategy
+- system can ingest market data
+- market data is stored in DuckDB
+- point-in-time metadata is represented
+- decision engine can generate buy/hold/sell alternatives
+- decision output includes risk information
+- audit log is written
+- results can be exported for thesis figures/tables
+- README explains how to run and understand the PoC
+
+---
+
+## Recommended Implementation Order
+
+```text
+1. Repository structure
+2. README4.md
+3. .env.example
+4. guldNAS folder structure
+5. DuckDB canonical path
+6. Dockerfile for backend
+7. docker-compose.yml for local PoC
+8. backend health endpoint
+9. minimal frontend shell
+10. local front page + login smoke test
+11. DuckDB schema
+12. yfinance / FinRL data ingestion
+13. raw file storage
+14. point-in-time ingestion schema
+15. portfolio builder
+16. strategy JSON schema
+17. strategy builder
+18. decision engine v1
+19. risk metrics
+20. audit log
+21. baseline comparison
+22. thesis figures
+23. final demo script
+```
+
+---
+
+## Local Development
+
+From the repository root:
+
+```bash
+cd system
+cp .env.example .env
+docker compose up --build
+```
+
+Expected local services:
+
+```text
+Frontend: http://localhost:3000
+Backend:  http://localhost:8000
+API docs: http://localhost:8000/docs
+```
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+---
+
+## Environment Files
+
+`.env` files must not be committed.
+
+Use:
+
+```text
+.env.example
+```
+
+for documented variables.
+
+Expected environment groups:
+
+```text
+APP_ENV=local
+DUCKDB_PATH=./runtime-data/market_research.duckdb
+RAW_DATA_PATH=./runtime-data/raw
+PARQUET_PATH=./runtime-data/parquet
+MODEL_REGISTRY_PATH=./runtime-data/models
+LOG_LEVEL=INFO
+```
+
+For guldNAS:
+
+```text
+DUCKDB_PATH=/mnt/nas/stockinvestmentdss/duckdb/market_research.duckdb
+RAW_DATA_PATH=/mnt/nas/stockinvestmentdss/raw-api-responses
+PARQUET_PATH=/mnt/nas/stockinvestmentdss/parquet
+MODEL_REGISTRY_PATH=/mnt/nas/stockinvestmentdss/model-checkpoints
+```
+
+---
+
+## Kubernetes / k3s Target
+
+The Turing Pi k3s cluster is intended for the test/demo platform.
+
+Planned node roles:
+
+| Node | Role |
+|---|---|
+| node1 | control-plane |
+| node2 | ingestion / scheduler |
+| node3 | feature / strategy |
+| node4 | tracking / monitoring / lightweight RL |
+
+Recommended deployment order:
+
+```text
+1. Verify all nodes
+2. Assign stable hostnames and IPs
+3. Install k3s on node1
+4. Join node2-node4
+5. Deploy test namespace
+6. Deploy hello-world API
+7. Mount guldNAS
+8. Deploy dss-api
+9. Deploy ingestion-worker
+10. Deploy feature-worker
+11. Deploy decision-worker
+12. Deploy FinRL/ObjectRL worker later
+```
+
+---
+
+## CI/CD Target
+
+GitHub Actions should eventually cover:
+
+- Python tests
+- linting
+- Docker image builds
+- Docker Compose smoke test
+- dependency scanning
+- build-and-push workflow
+- test deployment
+- production/demo deployment
+- rollback gate
+- release tagging
+
+For V1.0, the minimum CI requirement is:
+
+```text
+backend tests + Docker build + local smoke test
+```
+
+---
+
+## Report Integration
+
+The PoC should produce outputs that can be used directly in the thesis:
+
+```text
+research/results/tables/
+research/results/figures/
+research/report/figures/
+research/report/tables/
+```
+
+Expected thesis artifacts:
+
+- system architecture diagram
+- data pipeline diagram
+- slow/fast layer diagram
+- point-in-time data model
+- decision audit example
+- baseline comparison table
+- risk metric table
+- demo screenshots
+
+---
+
+## Security and Privacy
+
+The repository must not include:
+
+- real `.env` files
+- API keys
+- GitHub tokens
+- private SSH keys
+- large raw datasets
+- model checkpoints
+- private user data
+- production secrets
+
+Use `.env.example`, GitHub Actions secrets and local ignored files.
+
+---
+
+## Current Project Board
+
+The GitHub Project board is used as the operational sprint board for V1.0 PoC development.
+
+Main views:
+
+- Backlog
+- Status
+- Roadmap
+- Priority
+- Category
+- Board
+- Native
+
+Main categories:
+
+- Development
+- Data
+- Architecture
+- RL / AI
+- Evaluation
+- Report
+
+Main status flow:
+
+```text
+Todo → In Progress → Code Review → Done
+```
+
+Main roadmap flow:
+
+```text
+Now → Next → Later
+```
+
+---
+
+## Repository Rules
+
+```text
+docs/      = architecture, infrastructure and project documentation
+system/    = runnable DSS application and deployment assets
+research/  = thesis experiments, notebooks, report and evaluation
+.github/   = CI/CD automation
+data/      = documentation only; large data is external
+```
+
+Do not commit large runtime files.
+
+Do not commit secrets.
+
+Do not use `system/` as the repository root.
+
+---
+
+## Current Status
+
+This repository is in active thesis PoC development.
+
+The immediate focus is:
+
+```text
+1. create the V1.0 project skeleton
+2. define local Docker setup
+3. define DuckDB storage
+4. verify FinRL environment
+5. build a minimal app shell
+6. implement data ingestion
+7. implement strategy and portfolio flow
+8. generate first decision-support output
+9. export thesis-ready evidence
+```
+
+---
+
+## License
+
+This project is currently private thesis work unless otherwise specified.
+
+---
+
+## Disclaimer
+
+This project is for academic research and educational purposes only.
+
+It does not provide financial advice.
+
+Any generated buy/hold/sell output is part of a research prototype and must not be interpreted as investment advice.
