@@ -302,7 +302,7 @@ W&B should support reproducibility and thesis evidence. It must not become a blo
 
 ---
 
-## Device Architecture
+## PoC Device Architecture
 
 ```text
 MacBook Pro
@@ -328,6 +328,7 @@ Turing Pi 2 / k3s
 guldNAS
   - DuckDB storage
   - Parquet datasets
+  - CSV datasets
   - raw API snapshots
   - model checkpoints
   - logs
