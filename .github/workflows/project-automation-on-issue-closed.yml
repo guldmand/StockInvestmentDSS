@@ -19,6 +19,7 @@ jobs:
       OWNER: guldmand
       PROJECT_NUMBER: "11"
       ISSUE_URL: ${{ github.event.issue.html_url }}
+      ISSUE_ACTION: ${{ github.event.action }}
       PERCENTAGE_DONE: "■■■■■■■■■■ 100%"
 
     steps:
