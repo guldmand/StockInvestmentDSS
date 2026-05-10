@@ -18,6 +18,14 @@ The system combines:
 
 ---
 
+## README Version
+
+Current documentation version: **v4.1**
+
+This version aligns the README with the current PoC project board after the README-alignment, external dependency, research track, ML/Deep RL, W&B, and slow/fast layer task scripts.
+
+README v4.1 reflects the repository structure after project-management scripts **10–13** and the GitHub Project automation workflow.
+
 ## Thesis Context
 
 This repository supports the MSc Data Science master thesis:
@@ -154,6 +162,18 @@ The fast layer handles:
 
 The fast layer should respond quickly and must not retrain a deep RL model for every user interaction.
 
+### Slow/Fast Research Mapping
+
+The slow/fast split is reflected in both the runnable system and the research workspace.
+
+| Layer | Research location | System location | Purpose |
+|---|---|---|---|
+| Slow layer | `research/notebooks/`, `research/experiments/slow_layer/` | `workers/finrl-worker/`, `workers/training-job/`, `packages/dss-finrl-adapter/`, `packages/dss-env/` | Offline training, backtesting, evaluation, metrics and model registry updates |
+| Fast layer | `research/notebooks/`, `research/experiments/fast_layer/` | `backend/`, `workers/decision-worker/`, `packages/dss-strategies/`, `packages/dss-risk/` | Near real-time decision support, strategy constraints, risk output and audit logging |
+| Shared | `research/configs/`, `research/results/` | `packages/`, `sql/`, `configs/` | Shared schemas, configs, data contracts, outputs and thesis evidence |
+
+For V1.0, the slow layer may use a baseline/proxy model output, while the fast layer must be able to generate useful decision support without retraining a deep RL model live.
+
 ---
 
 ## High-Level System Flow
@@ -250,6 +270,7 @@ Baseline comparisons should include:
 | Market data | yfinance / FinRL data tools |
 | Additional ingestion | SDU_DataScienceTool |
 | Analysis | Python notebooks |
+| Experiment tracking | Weights & Biases |
 | Storage analytics | DuckDB |
 
 ### Infrastructure
@@ -261,6 +282,23 @@ Baseline comparisons should include:
 | Persistent storage | guldNAS / Raspberry Pi NAS |
 | GPU training | Local GPU box / cloud GPU |
 | Public demo target | guldmand.com/data-science/master-thesis |
+
+---
+
+## Experiment Tracking
+
+ML, Deep RL, FinRL, slow-layer training and evaluation experiments may be logged to **Weights & Biases**.
+
+W&B is used for:
+
+- experiment configuration
+- training and evaluation metrics
+- run metadata
+- model and checkpoint references
+- dataset and feature build references
+- reproducibility notes
+
+W&B should support reproducibility and thesis evidence. It must not become a blocker for V1.0; if credentials are unavailable, experiments should still run locally and log metrics to files, DuckDB, CSV or Parquet.
 
 ---
 
@@ -370,7 +408,15 @@ StockInvestmentDSS/                         # Repository root
 │     ├─ 6_add_missing_v1_poc_tasks.sh      # Add missing V1.0 PoC tasks
 │     ├─ 7_fix_priority_fields.sh           # Move priority labels into real Priority field
 │     ├─ 8_fix_categories_and_status.sh     # Fix category/status project fields
-│     └─ 9_add_risk_adjusted_baseline_comparison.sh # Add missing baseline comparison issue
+│     ├─ 9_add_risk_adjusted_baseline_comparison.sh # Add missing baseline comparison issue
+│     ├─ 10_add_missing_readme_alignment_issues.sh # Add README-alignment tasks
+│     ├─ 11_add_external_dependencies_and_research_tasks.sh # Add external/research tasks
+│     ├─ 12_add_model_training_ml_indicator_tasks.sh # Add ML, W&B and indicator tasks
+│     └─ 13_add_slow_fast_layer_alignment_tasks.sh # Add slow/fast layer alignment tasks
+│
+├─ external/                                # External repositories and pinned dependency references
+│  ├─ README.md                             # External dependency policy and usage notes
+│  └─ external-repos.lock                   # URLs, roles and pinned commits/tags for external repos
 │
 ├─ system/                                  # Runnable DSS system and deployment target
 │  ├─ README.md                             # System-specific run and architecture notes
@@ -692,28 +738,43 @@ StockInvestmentDSS/                         # Repository root
 │  ├─ README.md                             # Research workspace overview
 │  │
 │  ├─ notebooks/                            # Research notebooks
+│  │  ├─ README.md                          # Notebook index, purpose, inputs and outputs
 │  │  ├─ 00_data_check.ipynb                # Data availability and sanity checks
-│  │  ├─ 01_finrl_baseline.ipynb            # FinRL baseline experiment
-│  │  ├─ 02_gymnasium_env.ipynb             # Custom Gymnasium environment experiment
-│  │  ├─ 03_baseline_comparison.ipynb       # Buy-and-hold/equal-weight/risk baseline comparison
-│  │  ├─ 04_iqn_experiment.ipynb            # IQN-style experiment
-│  │  ├─ 05_uncertainty_proxy.ipynb         # Evidential/uncertainty proxy experiment
-│  │  └─ 06_thesis_figures.ipynb            # Generate thesis figures
+│  │  ├─ 01_slow_layer_finrl_baseline.ipynb # Slow-layer FinRL baseline experiment
+│  │  ├─ 02_slow_layer_gymnasium_env.ipynb  # Slow-layer custom Gymnasium environment
+│  │  ├─ 03_slow_layer_baseline_comparison.ipynb # Buy-and-hold/equal-weight/risk baseline comparison
+│  │  ├─ 04_fast_layer_decision_case.ipynb  # Fast-layer decision-support case
+│  │  ├─ 05_fast_layer_strategy_constraints.ipynb # Strategy constraint effects
+│  │  ├─ 06_fast_layer_audit_trace.ipynb    # Decision audit trace and reproducibility
+│  │  ├─ 07_iqn_extension.ipynb             # IQN/distributional RL extension
+│  │  ├─ 08_uncertainty_proxy.ipynb         # Uncertainty proxy / evidential extension
+│  │  └─ 09_thesis_figures.ipynb            # Thesis figures and tables
 │  │
-│  ├─ experiments/                          # Structured experiment folders
-│  │  ├─ finrl_baseline/                    # Standard FinRL baseline experiments
-│  │  ├─ buy_and_hold/                      # Buy-and-hold baseline experiments
-│  │  ├─ equal_weight/                      # Equal-weight baseline experiments
-│  │  ├─ risk_adjusted_baseline/            # Risk-adjusted baseline comparison
-│  │  ├─ iqn/                               # IQN/distributional RL experiments
-│  │  ├─ uncertainty/                       # Uncertainty-aware experiments
+│  ├─ experiments/                          # Reproducible research experiments
+│  │  ├─ slow_layer/                        # Offline training, backtesting and evaluation
+│  │  │  ├─ finrl_baseline/                 # FinRL baseline experiment
+│  │  │  ├─ buy_and_hold/                   # Buy-and-hold baseline
+│  │  │  ├─ equal_weight/                   # Equal-weight baseline
+│  │  │  ├─ risk_adjusted_baseline/         # Risk-adjusted comparison
+│  │  │  ├─ hyperparameter_baseline/        # Minimal V1.0 hyperparameter config
+│  │  │  └─ model_registry_export/          # Export slow-layer outputs to registry
+│  │  │
+│  │  ├─ fast_layer/                        # Near real-time decision-support experiments
+│  │  │  ├─ decision_case/                  # User-facing decision case
+│  │  │  ├─ strategy_constraints/           # Constraint-based decision alternatives
+│  │  │  ├─ risk_output/                    # Risk summary output
+│  │  │  └─ audit_reproducibility/          # Reconstructable decision trace
+│  │  │
+│  │  ├─ iqn/                               # IQN/distributional RL extension
+│  │  ├─ uncertainty/                       # Uncertainty-aware extension
 │  │  └─ robustness/                        # Robustness and sensitivity experiments
 │  │
 │  ├─ configs/                              # Research experiment configs
 │  │  ├─ experiment_001_finrl_baseline.yaml # FinRL baseline config
 │  │  ├─ experiment_002_baselines.yaml      # Baseline comparison config
 │  │  ├─ experiment_003_risk_adjusted.yaml  # Risk-adjusted baseline config
-│  │  └─ experiment_004_iqn_extension.yaml  # IQN extension config
+│  │  ├─ experiment_004_iqn_extension.yaml  # IQN extension config
+│  │  └─ experiment_005_baseline_training.yaml # Minimal ML/Deep RL baseline training config
 │  │
 │  ├─ results/                              # Research outputs
 │  │  ├─ raw/                               # Raw experiment outputs
@@ -753,10 +814,39 @@ StockInvestmentDSS/                         # Repository root
    │  ├─ deploy-test.yml                    # Deploy to test/k3s environment
    │  ├─ deploy-prod.yml                    # Deploy to production/demo environment
    │  ├─ release.yml                        # Release tagging/versioning workflow
-   │  └─ dependency-scan.yml                # Dependency/security scanning workflow
+   │  ├─ dependency-scan.yml                # Dependency/security scanning workflow
+   │  ├─ project-automation-on-issue-closed.yml # Project field automation for closed/reopened issues
    │
    └─ dependabot.yml                        # Dependabot dependency update configuration
 ```
+
+---
+
+## External Dependencies Principle
+
+External repositories should not be pulled blindly from `main` or `master` during every Docker build.
+
+External dependencies should be documented and pinned by commit, tag or version when used.
+
+Relevant external repositories include:
+
+| Repository | Role |
+|---|---|
+| FinRL | Financial RL framework |
+| Gymnasium | Environment interface |
+| ObjectRL | RL prototyping/reference |
+| SDU_DataScienceTool | Existing data/API utility |
+| zero-sum-public | Frontend/charting reference |
+
+The intended location for external dependency documentation is:
+
+```text
+external/
+├─ README.md
+└─ external-repos.lock
+```
+
+For V1.0, external repositories may be documented and pinned before they are cloned or installed. The PoC should remain runnable even if optional external dependencies are deferred.
 
 ---
 
@@ -1194,12 +1284,42 @@ Main roadmap flow:
 Now → Next → Later
 ```
 
+### Project Board Automation
+
+The GitHub Project board is partly automated.
+
+When an issue is closed, the workflow should:
+
+```text
+Percentage = 100%
+Roadmap    = cleared
+```
+
+When an issue is reopened, the workflow should:
+
+```text
+Status = Todo
+```
+
+The automation is implemented in:
+
+```text
+.github/workflows/project-automation-on-issue-closed.yml
+```
+
+The workflow uses the repository secret:
+
+```text
+PROJECT_PAT
+```
+
 ---
 
 ## Repository Rules
 
 ```text
 docs/      = architecture, infrastructure and project documentation
+external/  = external dependency documentation and pinned repo references
 system/    = runnable DSS application and deployment assets
 research/  = thesis experiments, notebooks, report and evaluation
 .github/   = CI/CD automation
@@ -1224,12 +1344,13 @@ The immediate focus is:
 1. create the V1.0 project skeleton
 2. define local Docker setup
 3. define DuckDB storage
-4. verify FinRL environment
-5. build a minimal app shell
-6. implement data ingestion
-7. implement strategy and portfolio flow
-8. generate first decision-support output
-9. export thesis-ready evidence
+4. define external dependency policy
+5. verify FinRL / Gymnasium / research environment
+6. build a minimal app shell
+7. implement data ingestion
+8. implement strategy and portfolio flow
+9. generate first decision-support output
+10. export thesis-ready evidence
 ```
 
 ---
