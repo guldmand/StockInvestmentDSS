@@ -324,8 +324,6 @@ docs/               = architecture and infrastructure documentation
 
 ## Project Structure
 
-## Project Structure
-
 ```text
 StockInvestmentDSS/                         # Repository root
 ├─ README.md                                # Main project overview and active README
