@@ -1,0 +1,117 @@
+name: Project automation on issue closed
+
+on:
+  issues:
+    types:
+      - closed
+      - reopened
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  update-project-fields:
+    name: Set project fields for closed issue
+    runs-on: ubuntu-latest
+
+    env:
+      OWNER: guldmand
+      PROJECT_NUMBER: "11"
+      ISSUE_URL: ${{ github.event.issue.html_url }}
+      PERCENTAGE_DONE: "■■■■■■■■■■ 100%"
+
+    steps:
+      - name: Update Percentage to 100% and clear Roadmap
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Issue URL: $ISSUE_URL"
+          echo "Action: $ISSUE_ACTION"
+          echo "Project: $OWNER/$PROJECT_NUMBER"
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "ERROR: Missing PROJECT_PAT secret."
+            exit 1
+          fi
+
+          echo "Fetching project ID..."
+          PROJECT_ID="$(gh project view "$PROJECT_NUMBER" \
+            --owner "$OWNER" \
+            --format json \
+            --jq '.id')"
+
+          echo "Fetching project fields..."
+          gh project field-list "$PROJECT_NUMBER" \
+            --owner "$OWNER" \
+            --format json \
+            --limit 100 > fields.json
+
+          STATUS_FIELD_ID="$(jq -r '.fields[] | select(.name == "Status") | .id' fields.json)"
+          PERCENTAGE_FIELD_ID="$(jq -r '.fields[] | select(.name == "Percentage") | .id' fields.json)"
+          ROADMAP_FIELD_ID="$(jq -r '.fields[] | select(.name == "Roadmap") | .id' fields.json)"
+
+          TODO_OPTION_ID="$(jq -r '
+            .fields[]
+            | select(.name == "Status")
+            | .options[]
+            | select(.name == "Todo")
+            | .id
+          ' fields.json)"
+
+          PERCENTAGE_OPTION_ID="$(jq -r --arg VALUE "$PERCENTAGE_DONE" '
+            .fields[]
+            | select(.name == "Percentage")
+            | .options[]
+            | select(.name == $VALUE)
+            | .id
+          ' fields.json)"
+
+          echo "Fetching project items..."
+          gh project item-list "$PROJECT_NUMBER" \
+            --owner "$OWNER" \
+            --format json \
+            --limit 300 > items.json
+
+          ITEM_ID="$(jq -r --arg URL "$ISSUE_URL" '
+            .items[]
+            | select(.content.url == $URL)
+            | .id
+          ' items.json | head -n 1)"
+
+          if [[ -z "$ITEM_ID" || "$ITEM_ID" == "null" ]]; then
+            echo "ERROR: Could not find project item for issue:"
+            echo "$ISSUE_URL"
+            exit 1
+          fi
+
+          if [[ "$ISSUE_ACTION" == "closed" ]]; then
+            echo "Issue closed: setting Percentage = 100% and clearing Roadmap"
+
+            gh project item-edit \
+              --id "$ITEM_ID" \
+              --project-id "$PROJECT_ID" \
+              --field-id "$PERCENTAGE_FIELD_ID" \
+              --single-select-option-id "$PERCENTAGE_OPTION_ID"
+
+            gh project item-edit \
+              --id "$ITEM_ID" \
+              --project-id "$PROJECT_ID" \
+              --field-id "$ROADMAP_FIELD_ID" \
+              --clear
+          fi
+
+          if [[ "$ISSUE_ACTION" == "reopened" ]]; then
+            echo "Issue reopened: setting Status = Todo only"
+
+            gh project item-edit \
+              --id "$ITEM_ID" \
+              --project-id "$PROJECT_ID" \
+              --field-id "$STATUS_FIELD_ID" \
+              --single-select-option-id "$TODO_OPTION_ID"
+          fi
+
+          echo "Done."
