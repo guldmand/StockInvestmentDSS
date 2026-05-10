@@ -1,0 +1,48 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+system/.env
+system/.env.*
+!system/.env.example
+
+research/.env
+research/.env.*
+!research/.env.example
+
+# Runtime
+system/runtime-data/
+
+# Research outputs
+research/results/raw/
+research/results/processed/
+research/results/model-checkpoints/
+research/results/model-registry/
+research/results/logs/
+
+# Externals
+external/*/
+
+# Data
+*.duckdb
+*.duckdb.wal
+*.parquet
+*.csv
+
+# GitHub/project script outputs
+.github/scripts-output/
+project-management/exports/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/settings.json
