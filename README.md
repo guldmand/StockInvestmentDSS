@@ -764,6 +764,8 @@ StockInvestmentDSS/                         # Repository root
 
 ## Canonical Storage Layout
 
+## Canonical Storage Layout
+
 Runtime data should not live permanently inside the Git repository.
 
 Canonical persistent storage is expected to live on guldNAS:
@@ -771,38 +773,93 @@ Canonical persistent storage is expected to live on guldNAS:
 ```text
 /mnt/nas/stockinvestmentdss/
 ├── duckdb/
-│   └── market_research.duckdb
+│   └── market_research.duckdb              # Canonical query database
+│
 ├── parquet/
-│   ├── raw/
-│   ├── curated/
-│   └── features/
+│   ├── raw/                                # Raw normalized tabular data
+│   ├── curated/                            # Cleaned and validated datasets
+│   ├── features/                           # Feature-engineering outputs
+│   ├── backtests/                          # Backtest-ready analytical datasets
+│   └── exports/                            # Parquet exports for reproducible experiments
+│
+├── csv/
+│   ├── raw/                                # CSV mirrors of selected raw tabular data
+│   ├── curated/                            # Human-readable curated datasets
+│   ├── features/                           # Human-readable feature outputs
+│   ├── backtests/                          # Backtest result exports
+│   ├── thesis-tables/                      # CSV tables used directly in the thesis
+│   └── debug/                              # Temporary CSV exports for inspection/debugging
+│
 ├── raw-api-responses/
-│   ├── yfinance/
-│   ├── finrl/
-│   ├── gdelt/
-│   ├── macro/
-│   └── fundamentals/
+│   ├── yfinance/                           # Original yfinance API responses
+│   ├── finrl/                              # Original FinRL-related downloaded data
+│   ├── gdelt/                              # Original news/event API responses
+│   ├── macro/                              # Original macro indicator responses
+│   └── fundamentals/                       # Original company fundamentals responses
+│
 ├── model-checkpoints/
-│   ├── finrl/
-│   ├── iqn/
-│   └── baselines/
+│   ├── finrl/                              # FinRL model checkpoints
+│   ├── iqn/                                # IQN/distributional RL checkpoints
+│   └── baselines/                          # Baseline model/config artifacts
+│
 ├── backtest-results/
+│   ├── raw/                                # Raw backtest outputs
+│   ├── processed/                          # Processed backtest results
+│   └── comparisons/                        # Baseline comparison outputs
+│
 ├── experiment-artifacts/
+│   ├── configs/                            # Frozen experiment configs
+│   ├── logs/                               # Experiment logs
+│   ├── metrics/                            # Experiment metrics
+│   └── figures/                            # Experiment-generated figures
+│
 ├── reports/
+│   ├── tables/                             # Thesis-ready result tables
+│   ├── figures/                            # Thesis-ready figures
+│   └── exports/                            # Final report/evidence exports
+│
 └── logs/
+    ├── backend/                            # Backend logs
+    ├── workers/                            # Worker logs
+    ├── ingestion/                          # Ingestion logs
+    ├── training/                           # Training logs
+    └── audit/                              # Decision audit logs
 ```
 
 Local development may use:
 
 ```text
 system/runtime-data/market_research.duckdb
+system/runtime-data/parquet/
+system/runtime-data/csv/
+system/runtime-data/raw-api-responses/
 ```
 
 but the long-term canonical path should be:
 
 ```text
 /mnt/nas/stockinvestmentdss/duckdb/market_research.duckdb
+/mnt/nas/stockinvestmentdss/parquet/
+/mnt/nas/stockinvestmentdss/csv/
+/mnt/nas/stockinvestmentdss/raw-api-responses/
 ```
+### Storage Format Principle
+
+The same logical dataset may exist in multiple physical formats because each format serves a different purpose.
+
+| Format | Purpose |
+|---|---|
+| Raw API responses | Preserve exactly what the system received from external sources |
+| DuckDB | Canonical queryable analytical database |
+| Parquet | Efficient columnar format for ML, feature pipelines and reproducible experiments |
+| CSV | Human-readable exports for debugging, inspection, thesis tables and external review |
+
+DuckDB should be treated as the primary analytical store.
+
+Parquet should be treated as the reproducible data pipeline format.
+
+CSV should be treated as an export/debug/reporting format, not the primary source of truth.
+
 
 ---
 
