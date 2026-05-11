@@ -12,6 +12,7 @@ research/.env.*
 !research/.env.example
 
 # Runtime
+runtime-data/
 system/runtime-data/
 
 # Research outputs
@@ -27,6 +28,7 @@ external/*/
 # Data
 *.duckdb
 *.duckdb.wal
+*.duckdb.tmp
 *.parquet
 *.csv
 
