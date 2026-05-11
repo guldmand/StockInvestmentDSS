@@ -1,0 +1,13 @@
+# External repository manifest for StockInvestmentDSS PoC
+# Format:
+# name | url | commit | role | layer | notes
+
+FinRL | https://github.com/AI4Finance-Foundation/FinRL | pin-later | financial-rl-framework | slow/research | Installed locally with pip from GitHub; container setup later.
+
+Gymnasium | https://github.com/Farama-Foundation/Gymnasium | pin-later | environment-interface | slow/research | Prefer package install unless direct source reference is required.
+
+ObjectRL | https://github.com/adinlab/objectrl | pin-later | rl-prototyping-library | slow/research | Clone only if needed for DM887/RL experiments.
+
+SDU_DataScienceTool | https://github.com/guldmand/SDU_DataScienceTool | pin-later | existing-data-ingestion-tool | slow/shared | Reuse ideas or code only when explicitly needed.
+
+zero-sum-public | https://github.com/tristcoil/zero-sum-public | pin-later | frontend-charting-reference | application/reference | Reference only; do not vendor unless explicitly needed.
