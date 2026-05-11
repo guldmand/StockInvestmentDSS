@@ -1,0 +1,80 @@
+// -----------------------------------------------------------------------------
+// Functions
+// -----------------------------------------------------------------------------
+
+@use "sass:color" as sass-color;
+@use "sass:map";
+@use "sass:math";
+@use "sass:string";
+
+// Custom hsl color function
+@function color-hsl($color) {
+  $hue: sass-color.channel($color, "hue", $space: hsl);
+  $saturation: sass-color.channel($color, "saturation", $space: hsl);
+  $lightness: sass-color.channel($color, "lightness", $space: hsl);
+
+  @return string.unquote("hsl(#{$hue}, #{$saturation}, #{$lightness})");
+}
+
+// Custom hsla color function
+@function color-hsla($color) {
+  $hue: sass-color.channel($color, "hue", $space: hsl);
+  $saturation: sass-color.channel($color, "saturation", $space: hsl);
+  $lightness: sass-color.channel($color, "lightness", $space: hsl);
+  $alpha: sass-color.alpha($color);
+
+  @return string.unquote("hsla(#{$hue}, #{$saturation}, #{$lightness}, #{$alpha})");
+}
+
+// Custom hsla color function with custom alpha
+@function color-custom-hsl-with-alpha($color, $alpha) {
+  $hue: sass-color.channel($color, "hue", $space: hsl);
+  $saturation: sass-color.channel($color, "saturation", $space: hsl);
+  $lightness: sass-color.channel($color, "lightness", $space: hsl);
+
+  @return string.unquote("hsla(#{$hue}, #{$saturation}, #{$lightness}, #{$alpha})");
+}
+
+// Palette-based color function
+@function color($base, $shade: base, $alpha: 1) {
+  $base-map: map.get($palette, $base);
+
+  @if $base-map == null {
+    @error "Color `#{$base}` does not exist in $palette.";
+  }
+
+  $color-value: map.get($base-map, $shade);
+
+  @if $color-value == null {
+    @error "Shade `#{$shade}` does not exist for color `#{$base}` in $palette.";
+  }
+
+  @return color-custom-hsl-with-alpha($color-value, $alpha);
+}
+
+// Palette-based rgba color function
+@function color-hex($color, $tone: base, $alpha: 1) {
+  $base-map: map.get($palette, $color);
+
+  @if $base-map == null {
+    @error "Color `#{$color}` does not exist in $palette.";
+  }
+
+  $rgb: map.get($base-map, $tone);
+
+  @if $rgb == null {
+    @error "Tone `#{$tone}` does not exist for color `#{$color}` in $palette.";
+  }
+
+  @return rgba($rgb, $alpha);
+}
+
+// px to rem conversion
+@function rem($px, $base: 16px) {
+  @return math.div($px, $base) * 1rem;
+}
+
+// Legacy-compatible alias from portfolio setup
+@function calculateRem($size) {
+  @return rem($size);
+}

@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_PORT:-8001}:8000"
     volumes:
       - ./runtime-data:/app/runtime-data
     restart: unless-stopped

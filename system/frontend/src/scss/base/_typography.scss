@@ -1,0 +1,21 @@
+body {
+  font-size: 1rem;
+  color: var(--color-text);
+  font-family: var(--font-base);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+p {
+  color: $color-text-muted;
+  font-size: 1rem;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 0;
+  color: $color-text;
+  font-weight: 700;
+  letter-spacing: normal;
+}

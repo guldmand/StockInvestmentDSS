@@ -1,0 +1,39 @@
+body.page {
+  display: grid;
+  grid-template-columns:
+    [full-start] minmax(var(--page-padding-inline), 1fr)
+    [content-start] minmax(0, var(--page-max-width))
+    [content-end] minmax(var(--page-padding-inline), 1fr)
+    [full-end];
+  grid-template-rows: auto 1fr;
+}
+
+.header,
+.page__main {
+  grid-column: full-start / full-end;
+  display: grid;
+  grid-template-columns: inherit;
+}
+
+.header__inner,
+.page__main > section {
+  grid-column: content-start / content-end;
+}
+
+.page__main {
+  padding-block: 2rem;
+}
+
+.runtime-status,
+.dss-overview {
+  display: grid;
+  gap: var(--page-gap);
+}
+
+.runtime-status {
+  margin-bottom: var(--page-gap);
+}
+
+.dss-overview {
+  grid-template-columns: 1fr;
+}

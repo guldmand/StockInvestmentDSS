@@ -1,0 +1,53 @@
+:root {
+  --page-gap: 2rem;
+  --page-padding-inline: 4rem;
+  --page-max-width: 2200px;
+}
+
+.page__main {
+  padding-block: 5.5rem;
+}
+
+.hero {
+  margin-bottom: 3.5rem;
+}
+
+.hero__title {
+  max-width: 1800px;
+  font-size: clamp(4.75rem, 4.2vw, 7rem);
+  line-height: 0.98;
+}
+
+.hero__lead {
+  max-width: 95rem;
+  font-size: 1.1rem;
+}
+
+.runtime-status {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dss-overview {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.status-card,
+.dss-card {
+  padding: 1.5rem;
+}
+
+.status-card__title {
+  font-size: 1.55rem;
+}
+
+.dss-card__title {
+  font-size: 1.3rem;
+}
+
+.dss-card__text,
+.status-card__value,
+.status-card__meta-item {
+  font-size: 1rem;
+}
+
+/*# sourceMappingURL=ultrawide.css.map */

@@ -1,0 +1,48 @@
+.status-card,
+.dss-card {
+  @include card-surface;
+
+  padding: 1.25rem;
+}
+
+.status-card__title,
+.dss-card__title {
+  margin: 0 0 0.75rem;
+  color: $color-text;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.status-card__title {
+  font-size: 1.35rem;
+}
+
+.dss-card__title {
+  font-size: 1.2rem;
+}
+
+.status-card__value,
+.dss-card__text {
+  margin: 0;
+  color: $color-text-muted;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.status-card__meta-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-card__meta-item {
+  color: $color-text-muted;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.status-card__meta-label {
+  color: $color-text;
+}

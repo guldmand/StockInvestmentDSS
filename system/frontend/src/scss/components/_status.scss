@@ -1,0 +1,24 @@
+.status-card__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+}
+
+.status-card__value::before {
+  content: "";
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background-color: var(--color-warning);
+}
+
+.status-card__value--ok::before,
+.status--ok::before {
+  background-color: var(--color-success);
+}
+
+.status-card__value--error::before,
+.status--error::before {
+  background-color: var(--color-error);
+}

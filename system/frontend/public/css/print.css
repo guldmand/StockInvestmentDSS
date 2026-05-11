@@ -1,0 +1,44 @@
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html,
+body {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+body.page {
+  display: block;
+}
+
+.header,
+.header__nav,
+.hero__actions {
+  display: none !important;
+}
+
+.page__main {
+  display: block;
+  width: 100%;
+  padding: 0;
+}
+
+.status-card,
+.dss-card {
+  box-shadow: none;
+  break-inside: avoid;
+}
+
+a {
+  color: #000000;
+  text-decoration: underline;
+}
+
+a::after {
+  content: " (" attr(href) ")";
+  font-size: 0.85em;
+}
+
+/*# sourceMappingURL=print.css.map */

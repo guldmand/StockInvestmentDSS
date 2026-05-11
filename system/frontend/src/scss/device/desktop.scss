@@ -1,0 +1,17 @@
+:root {
+  --page-gap: 2rem;
+  --page-padding-inline: 2rem;
+  --page-max-width: 1280px;
+}
+
+.page__main {
+  padding-block: 4rem;
+}
+
+.hero {
+  margin-bottom: 3rem;
+}
+
+.dss-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}

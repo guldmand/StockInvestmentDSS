@@ -48,3 +48,7 @@ env/
 .DS_Store
 Thumbs.db
 .vscode/settings.json
+
+# Node modules
+node_modules/
+system/frontend/node_modules/

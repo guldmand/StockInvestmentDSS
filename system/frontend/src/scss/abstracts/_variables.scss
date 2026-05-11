@@ -1,0 +1,75 @@
+// -----------------------------------------------------------------------------
+// Breakpoints
+// Matches the CSS files loaded in index.html.
+// -----------------------------------------------------------------------------
+
+$breakpoints: (
+  tablet: "screen and (min-width: 768px)",
+  desktop: "screen and (min-width: 992px)",
+  big-desktop: "screen and (min-width: 1400px)",
+  ultrawide-desktop: "screen and (min-width: 2200px)",
+  print: "print"
+);
+
+// -----------------------------------------------------------------------------
+// Bootstrap overrides
+// These must be defined before importing Bootstrap.
+// -----------------------------------------------------------------------------
+
+$primary: $color-black;
+$secondary: $color-text-muted;
+$light: #f8f9fa;
+$dark: $color-black;
+
+$body-bg: $color-white;
+$body-color: $color-text;
+
+$border-radius: 0.5rem;
+$border-radius-lg: 0.75rem;
+
+$font-family-sans-serif: "myriad-pro", "Helvetica Neue", Arial, sans-serif;
+$headings-font-weight: 700;
+
+// -----------------------------------------------------------------------------
+// Project layout tokens
+// Mobile-first defaults.
+// Device-specific files override these through :root custom properties.
+// -----------------------------------------------------------------------------
+
+$page-gap: 1rem;
+$page-padding-inline: 1rem;
+$page-max-width: 1200px;
+
+// -----------------------------------------------------------------------------
+// Component tokens
+// -----------------------------------------------------------------------------
+
+$radius-card: 0.875rem;
+$shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+
+// -----------------------------------------------------------------------------
+// CSS custom properties
+// Runtime/layout tokens stay in :root because they are easy to override
+// per device stylesheet.
+// -----------------------------------------------------------------------------
+
+:root {
+  --page-gap: #{$page-gap};
+  --page-padding-inline: #{$page-padding-inline};
+  --page-max-width: #{$page-max-width};
+
+  --color-bg: #{$color-background};
+  --color-surface: #{$color-surface};
+  --color-text: #{$color-text};
+  --color-muted: #{$color-text-muted};
+  --color-border: #{$color-border};
+  --color-accent: #{$color-black};
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-error: #{$color-error};
+
+  --radius-card: #{$radius-card};
+  --shadow-card: #{$shadow-card};
+
+  --font-base: #{$font-family-sans-serif};
+}
