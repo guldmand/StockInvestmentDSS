@@ -1,21 +1,88 @@
+// -----------------------------------------------------------------------------
+// Typography
+// -----------------------------------------------------------------------------
+
 body {
-  font-size: 1rem;
   color: var(--color-text);
-  font-family: var(--font-base);
+  font-family: $font-family-body;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-}
-
-p {
-  color: $color-text-muted;
-  font-size: 1rem;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
 h2,
-h3 {
+h3,
+h4,
+h5,
+h6,
+p {
   margin-top: 0;
+}
+
+h1,
+.hero__title {
+  color: $color-text;
+  font-family: $font-family-display;
+  font-size: clamp(3.5rem, 8vw, 7rem);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: normal;
+}
+
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: $color-text;
+  font-family: $font-family-heading;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: normal;
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+h3 {
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+}
+
+p {
+  color: $color-text-muted;
+  font-family: $font-family-body;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+strong,
+b {
   color: $color-text;
   font-weight: 700;
-  letter-spacing: normal;
+}
+
+small {
+  font-size: 0.875rem;
+}
+
+a {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: $font-family-ui;
+}
+
+::selection {
+  background-color: rgba($color-orange, 0.22);
+  color: $color-black;
 }

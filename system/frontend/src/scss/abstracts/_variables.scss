@@ -73,3 +73,16 @@ $shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
 
   --font-base: #{$font-family-sans-serif};
 }
+
+// -----------------------------------------------------------------------------
+// Typography
+// -----------------------------------------------------------------------------
+
+$font-family-body: "myriad-pro", "Helvetica Neue", Arial, sans-serif;
+$font-family-heading: "myriad-pro-semi-condensed", "myriad-pro", "Helvetica Neue", Arial, sans-serif;
+$font-family-display: "myriad-pro-condensed", "myriad-pro", "Helvetica Neue", Arial, sans-serif;
+$font-family-ui: "myriad-pro", "Helvetica Neue", Arial, sans-serif;
+
+// Bootstrap override
+$font-family-sans-serif: $font-family-body;
+$headings-font-weight: 700;
