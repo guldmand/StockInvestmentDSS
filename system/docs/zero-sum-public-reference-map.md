@@ -1,6 +1,6 @@
 # Zero Sum Public Reference Map
 
-Issue: #164 — Map zero-sum-public features to StockInvestmentDSS PoC  
+Issue: #164 and #165  
 Target path: `system/docs/zero-sum-public-reference-map.md`
 
 ## 1. Reference pages reviewed
@@ -24,7 +24,7 @@ The following Zero Sum Public / Zero Sum Times pages are useful as application a
 | `/earnings` | Earnings calendar reference for event-aware decision support. |
 | `/learn` | Educational/reference material surface. Useful later, but not part of the core PoC. |
 
-Zero Sum Public is used as a reference only. This issue does not decide to vendor the repository, migrate to Next.js/React, or clone the full Zero Sum application.
+Zero Sum Public is used as a reference only. This document does not decide to vendor the repository, migrate to Next.js/React, or clone the full Zero Sum application.
 
 ## 2. What to adapt
 
@@ -225,23 +225,185 @@ Recommended approach:
    - later FinRL/RL experiment outputs.
 6. Add point-in-time/audit metadata early so later backtests and recommendations can explain what data was known at decision time.
 
-SDU_DataScienceTool can later be integrated as an adapter layer for API calls and ingestion utilities, but it should not block #164.
+SDU_DataScienceTool can later be integrated as an adapter layer for API calls and ingestion utilities, but it should not block #164 or #165.
 
-## 9. Priority order
+## 9. Adaptation Boundary
 
-The recommended implementation order after this mapping is:
+This section resolves issue #165.
+
+### 9.1 Allowed use
+
+Zero Sum Public may be used for:
+
+- visual reference
+- UX flow reference
+- feature decomposition
+- chart/page ideas
+- naming inspiration
+- page prioritization
+- lightweight algorithmic ideas if reimplemented cleanly
+- internal documentation references
+- comparison of possible app surfaces
+
+Allowed examples:
+
+```text
+Use Zero Sum's /stocks/AAPL page as inspiration for our /stocks/{symbol} view.
+Use Zero Sum's /portfolio page as inspiration for portfolio layout and holdings overview.
+Use Zero Sum's /compare and /correlation pages as inspiration for analytics flows.
+Use Zero Sum's charting UX as inspiration for later chart components.
+```
+
+### 9.2 Must be reimplemented in current stack
+
+Any Zero Sum-inspired feature that enters StockInvestmentDSS must be reimplemented in our current stack:
+
+```text
+FastAPI backend
+FastAPI/Jinja2 frontend
+Static CSS/JavaScript
+DuckDB runtime data
+Docker Compose local runtime
+```
+
+This means:
+
+- backend endpoints must be ours
+- DuckDB tables must be ours
+- Jinja2 templates must be ours
+- JavaScript must call our `/api/*` routes
+- CSS must follow our current frontend structure
+- data ingestion must be controlled by our backend/data layer
+- point-in-time and audit requirements must remain part of our design
+
+### 9.3 Forbidden without explicit later decision
+
+The following is not allowed unless a separate future issue explicitly approves it:
+
+- vendoring the full Zero Sum repo
+- copying large app structures blindly
+- replacing Jinja2 with Next.js
+- migrating the PoC to React
+- replacing the current FastAPI backend
+- bypassing the backend API
+- frontend reading DuckDB directly
+- frontend calling yfinance directly
+- frontend calling external news/market APIs directly
+- adding large charting dependencies without a separate issue
+- implementing broker-like real trade execution
+- turning StockInvestmentDSS into a full Zero Sum clone
+- turning the thesis PoC into a general market analysis portal
+
+### 9.4 External API boundary
+
+All external market/news/fundamental calls must go through backend-controlled services.
+
+Allowed direction:
+
+```text
+frontend
+  -> /api/*
+  -> backend service
+  -> data adapter
+  -> external API
+  -> DuckDB
+  -> backend API
+  -> frontend
+```
+
+Forbidden direction:
+
+```text
+frontend -> external API
+frontend -> DuckDB
+frontend -> yfinance
+frontend -> SDU_DataScienceTool directly
+```
+
+Reason:
+
+The backend must control source tracking, caching, rate limits, ingestion timestamps, point-in-time correctness and audit evidence.
+
+### 9.5 DuckDB boundary
+
+DuckDB is a backend/runtime analytical store, not a browser-facing database.
+
+Allowed:
+
+- backend reads DuckDB
+- backend writes DuckDB
+- controlled ingestion jobs write DuckDB later
+- research notebooks may read agreed tables/exports
+
+Forbidden:
+
+- browser reads DuckDB
+- frontend templates read DuckDB directly
+- multiple uncontrolled services write the same DuckDB file
+- market data is overwritten without ingestion log/source timestamp
+
+### 9.6 Internal reference wording
+
+Use wording like:
+
+```text
+Zero Sum Public is used as a reference implementation for market UI flows and feature decomposition.
+No code is vendored or copied as part of this task.
+Adapted features are reimplemented in the StockInvestmentDSS FastAPI/Jinja2/DuckDB stack.
+```
+
+Avoid wording like:
+
+```text
+Imported Zero Sum
+Integrated Zero Sum frontend
+Copied Zero Sum dashboard
+Migrated to Zero Sum
+```
+
+### 9.7 When to create a separate issue
+
+Create a separate issue before:
+
+- copying or porting a concrete component
+- adding a new charting dependency
+- adding React/Next.js
+- adding a new external data provider
+- adding technical indicator calculations
+- adding news ingestion
+- adding scanner logic
+- adding heatmap or bubble visualizations
+- adding a new DuckDB table family
+- changing frontend architecture
+- changing data ingestion architecture
+
+### 9.8 Decision summary
+
+Decision:
+
+```text
+Zero Sum Public = reference only.
+StockInvestmentDSS remains FastAPI + Jinja2 + DuckDB.
+No vendoring.
+No framework migration.
+No frontend direct data access.
+Adapt features conceptually and reimplement only what supports the thesis DSS flow.
+```
+
+## 10. Priority order
+
+The recommended implementation order after this mapping and boundary is:
 
 | Priority | Issue / workstream | Reason |
 |---:|---|---|
-| 1 | #165 Define zero-sum-public adaptation boundary | Prevent scope creep and framework migration. |
-| 2 | #119 / #171 SDU_DataScienceTool integration strategy | Clarify adapter role before ingestion grows. |
-| 3 | #166 Create market data foundation with FinRL-yfinance and DuckDB | Data must exist before stock, portfolio and analytics views become meaningful. |
-| 4 | #167 Create Zero Sum inspired stock lookup and stock detail view | First user-facing market data feature. |
-| 5 | #168 Create minimal portfolio watchlist and transaction flow | Core DSS user workflow. |
-| 6 | #169 Create comparison and correlation prototype from stored market data | Early analytical evidence for diversification/risk. |
-| 7 | #170 Create market overview placeholders for heatmap scanner and technical views | Useful UI direction, but not first dependency. |
+| 1 | #119 / #171 SDU_DataScienceTool integration strategy | Clarify adapter role before ingestion grows. |
+| 2 | #166 Create market data foundation with FinRL-yfinance and DuckDB | Data must exist before stock, portfolio and analytics views become meaningful. |
+| 3 | #167 Create Zero Sum inspired stock lookup and stock detail view | First user-facing market data feature. |
+| 4 | #168 Create minimal portfolio watchlist and transaction flow | Core DSS user workflow. |
+| 5 | #169 Create comparison and correlation prototype from stored market data | Early analytical evidence for diversification/risk. |
+| 6 | #170 Create market overview placeholders for heatmap scanner and technical views | Useful UI direction, but not first dependency. |
 
-## 10. First implementation issue
+## 11. First implementation issue
 
 The first true implementation dependency after the mapping/boundary decisions is:
 
@@ -250,42 +412,6 @@ The first true implementation dependency after the mapping/boundary decisions is
 ```
 
 Without #166, stock lookup, portfolio analytics, comparison, correlation, technical analysis and market overview pages would become weak placeholders.
-
-## 11. Decision summary
-
-Zero Sum Public should be used as a visual, UX and feature reference for the StockInvestmentDSS PoC.
-
-The PoC should adapt:
-
-- stock lookup,
-- stock detail,
-- portfolio holdings,
-- transactions,
-- watchlist,
-- compare,
-- correlation,
-- basic charting,
-- later market overview concepts.
-
-The PoC should not become:
-
-- a full Zero Sum clone,
-- a full TradingView clone,
-- a Next.js/React migration,
-- a real-time finance portal,
-- a broad financial news/fundamentals platform.
-
-The StockInvestmentDSS direction remains:
-
-```text
-Jinja2 frontend
-FastAPI backend
-DuckDB runtime data
-FinRL/yfinance-compatible market data
-SDU_DataScienceTool adapter later
-point-in-time evidence
-RL/DSS-focused thesis PoC
-```
 
 ## 12. Close-comment draft for issue #164
 
@@ -296,3 +422,21 @@ The document maps relevant Zero Sum Public reference routes to StockInvestmentDS
 The mapping explicitly states that zero-sum-public is reference only. It does not propose vendoring the repository, migrating to Next.js/React, or cloning the full Zero Sum application.
 
 The first implementation dependency is identified as #166: Create market data foundation with FinRL-yfinance and DuckDB.
+
+## 13. Close-comment draft for issue #165
+
+Added an Adaptation Boundary section to `system/docs/zero-sum-public-reference-map.md`.
+
+The boundary defines:
+
+- what may be reused conceptually
+- what must be reimplemented in the current FastAPI + Jinja2 + DuckDB stack
+- what must not be copied without a separate later decision
+- backend/API boundary
+- DuckDB boundary
+- internal reference wording
+- when to create a separate issue for deeper extraction
+
+Decision:
+
+Zero Sum Public is reference only. StockInvestmentDSS remains FastAPI + Jinja2 + DuckDB. No vendoring, no framework migration, no frontend direct data access.
