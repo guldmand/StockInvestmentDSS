@@ -1,11 +1,11 @@
 :root {
   --page-gap: 2rem;
-  --page-padding-inline: 3rem;
-  --page-max-width: 1600px;
+  --page-padding-inline: 4rem;
+  --page-max-width: 2200px;
 }
 
 .page__main {
-  padding-block: 5rem;
+  padding-block: 5.5rem;
 }
 
 .hero {
@@ -13,13 +13,13 @@
 }
 
 .hero__title {
-  //font-size: clamp(4rem, 5vw, 6.25rem);
+  max-width: 1800px;
   line-height: 0.98;
 }
 
 .hero__lead {
-  max-width: 76rem;
-  font-size: 1.05rem;
+  max-width: 95rem;
+  font-size: 1.1rem;
 }
 
 .runtime-status {
@@ -27,7 +27,7 @@
 }
 
 .dss-overview {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .status-card,
@@ -36,9 +36,15 @@
 }
 
 .status-card__title {
-  font-size: 1.5rem;
+  font-size: 1.55rem;
 }
 
 .dss-card__title {
   font-size: 1.3rem;
+}
+
+.dss-card__text,
+.status-card__value,
+.status-card__meta-item {
+  font-size: 1rem;
 }

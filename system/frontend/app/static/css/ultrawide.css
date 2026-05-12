@@ -14,7 +14,6 @@
 
 .hero__title {
   max-width: 1800px;
-  font-size: clamp(4.75rem, 4.2vw, 7rem);
   line-height: 0.98;
 }
 
@@ -49,5 +48,3 @@
 .status-card__meta-item {
   font-size: 1rem;
 }
-
-/*# sourceMappingURL=ultrawide.css.map */

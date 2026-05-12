@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero" data-view="dashboard">
+  <p class="hero__eyebrow">Master Thesis PoC</p>
+
+  <h1 class="hero__title">
+    Data-driven stock investment <span class="hero__highlight">decision</span> support
+  </h1>
+
+  <p class="hero__lead">
+    A minimal decision support shell for risk-aware portfolio decisions using a Python backend,
+    DuckDB-backed runtime data and a future reinforcement learning research layer.
+  </p>
+
+  <p class="hero__user" id="current-user">Checking session...</p>
+
+  <div class="hero__actions">
+    <a class="button button--primary" href="/docs" target="_blank" rel="noopener">Open API docs</a>
+    <a class="button button--secondary" href="/openapi.json" target="_blank" rel="noopener">OpenAPI JSON</a>
+    <button class="button button--secondary" id="logout-button" type="button">Logout</button>
+  </div>
+</section>
+
+<section class="runtime-status" aria-label="Runtime status">
+  <article class="status-card status-card--backend">
+    <h2 class="status-card__title">Backend status</h2>
+    <p id="backend-status" class="status-card__value status-card__value--pending">Checking backend...</p>
+  </article>
+
+  <article class="status-card status-card--config">
+    <h2 class="status-card__title">Runtime config</h2>
+    <ul class="status-card__meta-list">
+      <li class="status-card__meta-item">
+        <strong class="status-card__meta-label">Environment:</strong>
+        <span id="runtime-env" class="status-card__meta-value">-</span>
+      </li>
+      <li class="status-card__meta-item">
+        <strong class="status-card__meta-label">DuckDB:</strong>
+        <span id="runtime-duckdb" class="status-card__meta-value">-</span>
+      </li>
+      <li class="status-card__meta-item">
+        <strong class="status-card__meta-label">guldNAS:</strong>
+        <span id="runtime-guldnas" class="status-card__meta-value">-</span>
+      </li>
+    </ul>
+  </article>
+</section>
+
+<section class="dss-overview" aria-label="DSS modules">
+  <article id="search" class="dss-card">
+    <h3 class="dss-card__title">Search</h3>
+    <p class="dss-card__text">Find stocks and inspect available market data.</p>
+  </article>
+
+  <article id="strategy" class="dss-card">
+    <h3 class="dss-card__title">Strategy</h3>
+    <p class="dss-card__text">Build or select investor strategy constraints.</p>
+  </article>
+
+  <article id="portfolio" class="dss-card">
+    <h3 class="dss-card__title">Portfolio</h3>
+    <p class="dss-card__text">Build a portfolio or inspect existing holdings.</p>
+  </article>
+
+  <article id="recommendations" class="dss-card">
+    <h3 class="dss-card__title">Recommendations</h3>
+    <p class="dss-card__text">View buy, hold or sell recommendations.</p>
+  </article>
+
+  <article id="risk" class="dss-card">
+    <h3 class="dss-card__title">Risk</h3>
+    <p class="dss-card__text">Inspect downside risk, uncertainty and audit evidence.</p>
+  </article>
+
+  <article id="audit" class="dss-card">
+    <h3 class="dss-card__title">Audit / evidence</h3>
+    <p class="dss-card__text">Trace point-in-time data state and decisions.</p>
+  </article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="/js/auth.js"></script>
+<script defer src="/js/dashboard.js"></script>
+{% endblock %}

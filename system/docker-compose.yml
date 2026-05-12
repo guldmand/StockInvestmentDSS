@@ -18,7 +18,11 @@ services:
       dockerfile: Dockerfile
     container_name: stockinvestmentdss-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3001}:80"
     depends_on:
       - backend
+    environment:
+      BACKEND_BASE_URL: http://backend:8000
+    volumes:
+      - ./frontend/app:/app/app
     restart: unless-stopped

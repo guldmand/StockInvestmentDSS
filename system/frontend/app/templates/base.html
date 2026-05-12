@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }}</title>
+
+  <link rel="stylesheet" href="https://use.typekit.net/nco1sey.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/tablet.css" media="screen and (min-width: 768px)">
+  <link rel="stylesheet" href="/css/desktop.css" media="screen and (min-width: 992px)">
+  <link rel="stylesheet" href="/css/big.css" media="screen and (min-width: 1400px)">
+  <link rel="stylesheet" href="/css/ultrawide.css" media="screen and (min-width: 2200px)">
+  <link rel="stylesheet" href="/css/print.css" media="print">
+</head>
+
+<body class="{{ body_class }}">
+  <header class="header">
+    <div class="header__inner">
+      <a class="header__logo" href="/">StockInvestmentDSS</a>
+
+      {% if active_nav == "login" %}
+        <nav class="header__nav" aria-label="Public navigation">
+          <a class="header__nav-link" href="/docs" target="_blank" rel="noopener">API docs</a>
+          <a class="header__nav-link" href="/openapi.json" target="_blank" rel="noopener">OpenAPI</a>
+        </nav>
+      {% else %}
+        <nav class="header__nav" aria-label="Main navigation">
+          <a class="header__nav-link" href="#dashboard">Dashboard</a>
+          <a class="header__nav-link" href="#search">Search</a>
+          <a class="header__nav-link" href="#strategy">Strategy</a>
+          <a class="header__nav-link" href="#portfolio">Portfolio</a>
+          <a class="header__nav-link" href="#recommendations">Recommendations</a>
+          <a class="header__nav-link" href="#risk">Risk</a>
+          <a class="header__nav-link" href="#audit">Audit</a>
+        </nav>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="page__main">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

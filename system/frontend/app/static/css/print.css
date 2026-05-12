@@ -40,5 +40,3 @@ a::after {
   content: " (" attr(href) ")";
   font-size: 0.85em;
 }
-
-/*# sourceMappingURL=print.css.map */

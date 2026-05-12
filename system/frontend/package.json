@@ -2,10 +2,10 @@
   "name": "stockinvestmentdss-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Minimal static frontend shell for the StockInvestmentDSS PoC.",
+  "description": "Frontend for the StockInvestmentDSS PoC.",
   "scripts": {
-    "build:css": "sass --load-path=node_modules --quiet-deps --silence-deprecation=import,global-builtin,color-functions,if-function src/scss/base.scss:public/css/base.css src/scss/tablet.scss:public/css/tablet.css src/scss/desktop.scss:public/css/desktop.css src/scss/big.scss:public/css/big.css src/scss/ultrawide.scss:public/css/ultrawide.css src/scss/print.scss:public/css/print.css",
-    "watch:css": "sass --watch --load-path=node_modules --quiet-deps --silence-deprecation=import,global-builtin,color-functions,if-function src/scss/base.scss:public/css/base.css src/scss/tablet.scss:public/css/tablet.css src/scss/desktop.scss:public/css/desktop.css src/scss/big.scss:public/css/big.css src/scss/ultrawide.scss:public/css/ultrawide.css src/scss/print.scss:public/css/print.css"
+    "build:css": "sass --load-path=node_modules --quiet-deps --silence-deprecation=import,global-builtin,color-functions,if-function --no-source-map src/scss:app/static/css",
+    "watch:css": "sass --watch --load-path=node_modules --quiet-deps --silence-deprecation=import,global-builtin,color-functions,if-function --no-source-map src/scss:app/static/css"
   },
   "devDependencies": {
     "sass": "^1.99.0"

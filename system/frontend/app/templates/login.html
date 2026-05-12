@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="auth-panel" aria-label="Local PoC login">
+  <div class="auth-panel__card">
+    <p class="auth-panel__eyebrow">Local PoC access</p>
+
+    <h1 class="auth-panel__title">StockInvestmentDSS</h1>
+
+    <p class="auth-panel__text">
+      Create a local PoC account or log in to open the DSS dashboard.
+    </p>
+
+    <div class="auth-panel__tabs" aria-label="Authentication mode">
+      <button class="auth-panel__tab auth-panel__tab--active" id="show-login" type="button">
+        Login
+      </button>
+      <button class="auth-panel__tab" id="show-register" type="button">
+        Create account
+      </button>
+    </div>
+
+    <form class="auth-form" id="login-form">
+      <label class="auth-form__field">
+        <span class="auth-form__label">Username</span>
+        <input class="auth-form__input" id="login-username" type="text" autocomplete="username" required>
+      </label>
+
+      <label class="auth-form__field">
+        <span class="auth-form__label">Password</span>
+        <input class="auth-form__input" id="login-password" type="password" autocomplete="current-password" minlength="6" required>
+      </label>
+
+      <p class="auth-form__feedback" id="login-feedback" aria-live="polite"></p>
+
+      <button class="button button--primary" type="submit">Login</button>
+    </form>
+
+    <form class="auth-form" id="register-form" hidden>
+      <label class="auth-form__field">
+        <span class="auth-form__label">Username</span>
+        <input class="auth-form__input" id="register-username" type="text" autocomplete="username" minlength="3" required>
+      </label>
+
+      <label class="auth-form__field">
+        <span class="auth-form__label">Email optional</span>
+        <input class="auth-form__input" id="register-email" type="email" autocomplete="email">
+      </label>
+
+      <label class="auth-form__field">
+        <span class="auth-form__label">Password</span>
+        <input class="auth-form__input" id="register-password" type="password" autocomplete="new-password" minlength="6" required>
+      </label>
+
+      <p class="auth-form__feedback" id="register-feedback" aria-live="polite"></p>
+
+      <button class="button button--primary" type="submit">Create account</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="/js/auth.js"></script>
+<script defer src="/js/login.js"></script>
+{% endblock %}
