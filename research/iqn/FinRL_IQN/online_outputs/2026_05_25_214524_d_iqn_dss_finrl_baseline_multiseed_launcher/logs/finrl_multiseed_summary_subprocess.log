@@ -1,0 +1,23 @@
+COMMAND: C:\Users\gurug\miniconda3\envs\stockdss\python.exe -m stock_investment_dss.runner.run_finrl_baseline_multiseed_summary
+
+STDOUT:
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Starting StockInvestmentDSS FinRL baseline multiseed summary.
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Project root: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Created run directory: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214620_d_iqn_dss_finrl_baseline_multiseed_summary
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Run id: 2026_05_25_214620_d_iqn_dss_finrl_baseline_multiseed_summary
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Recent run limit: 160
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Seed filter: [1, 2]
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Agent filter: ['a2c', 'ppo']
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Include MVO: True
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Context filters: {'dataset_id': None, 'pit_split_id': None, 'point_in_time': None, 'trade_end_date': None}
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | FinRL baseline multiseed summary completed.
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Rows before filter: 161
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Rows after filter: 114
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Rows after deduplication: 6
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Strategies: ['a2c', 'mvo', 'ppo']
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Wrote member records: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214620_d_iqn_dss_finrl_baseline_multiseed_summary\data\finrl_baseline_multiseed_member_records.csv
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Wrote aggregate table: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214620_d_iqn_dss_finrl_baseline_multiseed_summary\summary\finrl_baseline_multiseed_aggregate_by_strategy.csv
+2026-05-25 21:46:20 | INFO | stock_investment_dss.run | Wrote summary: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214620_d_iqn_dss_finrl_baseline_multiseed_summary\summary\finrl_baseline_multiseed_summary.json
+
+
+STDERR:

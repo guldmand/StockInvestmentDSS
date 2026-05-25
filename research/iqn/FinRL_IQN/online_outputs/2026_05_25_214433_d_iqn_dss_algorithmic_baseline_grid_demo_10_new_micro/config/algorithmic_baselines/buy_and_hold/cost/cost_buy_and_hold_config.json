@@ -1,0 +1,9 @@
+{
+  "strategy": "COST_buy_and_hold",
+  "dataset_tag": "demo_10_new_micro",
+  "ticker": "COST",
+  "initial_amount": 1000000.0,
+  "price_column_used": "close",
+  "transaction_cost_pct": 0.001,
+  "signal_rule": "buy at first available price and hold until final trade date"
+}

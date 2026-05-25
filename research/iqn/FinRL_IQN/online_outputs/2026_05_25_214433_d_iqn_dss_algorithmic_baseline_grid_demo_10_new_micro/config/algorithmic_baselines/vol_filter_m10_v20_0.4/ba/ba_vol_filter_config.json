@@ -1,0 +1,12 @@
+{
+  "strategy": "BA_vol_filter_m10_v20_0.4",
+  "dataset_tag": "demo_10_new_micro",
+  "ticker": "BA",
+  "trade_data": "data\\market\\daily\\imports\\market_data_demo10_new_2010_2026.csv",
+  "initial_amount": 1000000.0,
+  "momentum_window": 10,
+  "volatility_window": 20,
+  "max_annualized_volatility": 0.4,
+  "transaction_cost_pct": 0.001,
+  "signal_rule": "invested if momentum > 0 and annualized volatility <= threshold; otherwise cash; signal shifted by 1 day"
+}

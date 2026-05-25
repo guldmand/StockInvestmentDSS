@@ -1,0 +1,42 @@
+{
+  "status": "ok",
+  "portfolio_value_column_used": "account_value",
+  "periods_per_year": 252,
+  "cvar_alpha": 0.1,
+  "row_count": 600,
+  "initial_value": 999999.9999999999,
+  "final_value": 2266925.6102143927,
+  "profit_loss": 1266925.6102143927,
+  "total_return_pct": 126.69256102143929,
+  "max_drawdown_pct": -22.307136499432456,
+  "annualized_volatility_pct": 24.685794671658616,
+  "annualized_sharpe": 1.5161097603091507,
+  "cvar_pct": -2.6110947706864565,
+  "total_transaction_cost": null,
+  "total_trades": null,
+  "turnover_estimate_pct": null,
+  "final_cash_weight": null,
+  "max_concentration": null,
+  "agent_name": "mvo",
+  "baseline_type": "MVO / portfolio optimization baseline",
+  "trading_status": "benchmark",
+  "portfolio_value_changed": true,
+  "action_mean_abs": null,
+  "action_max_abs": null,
+  "non_zero_action_steps": null,
+  "mvo_metadata": {
+    "mvo_status": "optimized_scs",
+    "tickers": [
+      "AVGO",
+      "CAT",
+      "COST",
+      "LLY",
+      "ORCL"
+    ],
+    "initial_amount": 1000000.0,
+    "weights_sum": 0.9999999999999998
+  },
+  "weights_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214554_d_iqn_dss_finrl_baseline_suite_smoke_test\\data\\finrl_baseline_suite\\mvo\\mvo_weights.csv",
+  "asset_memory_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214554_d_iqn_dss_finrl_baseline_suite_smoke_test\\data\\finrl_baseline_suite\\mvo\\mvo_asset_memory.csv",
+  "metrics_timeseries_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214554_d_iqn_dss_finrl_baseline_suite_smoke_test\\data\\finrl_baseline_suite\\mvo\\mvo_metrics_timeseries.csv"
+}

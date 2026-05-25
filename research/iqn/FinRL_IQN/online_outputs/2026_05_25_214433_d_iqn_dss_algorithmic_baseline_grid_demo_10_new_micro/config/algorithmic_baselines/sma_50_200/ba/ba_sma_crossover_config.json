@@ -1,0 +1,12 @@
+{
+  "strategy": "BA_sma_50_200",
+  "source": "Algorithmic Trading / non-RL",
+  "dataset_tag": "demo_10_new_micro",
+  "ticker": "BA",
+  "trade_data": "data\\market\\daily\\imports\\market_data_demo10_new_2010_2026.csv",
+  "initial_amount": 1000000.0,
+  "fast_window": 50,
+  "slow_window": 200,
+  "transaction_cost_pct": 0.001,
+  "signal_rule": "invested if fast SMA > slow SMA; otherwise cash; signal shifted by 1 day"
+}

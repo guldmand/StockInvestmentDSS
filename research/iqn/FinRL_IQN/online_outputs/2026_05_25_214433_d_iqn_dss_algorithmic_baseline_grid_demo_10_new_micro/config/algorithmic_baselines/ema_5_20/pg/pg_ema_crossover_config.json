@@ -1,0 +1,11 @@
+{
+  "strategy": "PG_ema_5_20",
+  "dataset_tag": "demo_10_new_micro",
+  "ticker": "PG",
+  "trade_data": "data\\market\\daily\\imports\\market_data_demo10_new_2010_2026.csv",
+  "initial_amount": 1000000.0,
+  "fast_window": 5,
+  "slow_window": 20,
+  "transaction_cost_pct": 0.001,
+  "signal_rule": "invested if fast EMA > slow EMA; otherwise cash; signal shifted by 1 day"
+}

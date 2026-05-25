@@ -1,0 +1,33 @@
+{
+  "status": "ok",
+  "project_name": "StockInvestmentDSS",
+  "prototype_name": "D-IQN-DSS",
+  "run_id": "2026_05_25_214524_d_iqn_dss_finrl_baseline_multiseed_launcher",
+  "project_root": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN",
+  "run_directory": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214524_d_iqn_dss_finrl_baseline_multiseed_launcher",
+  "seeds": [
+    1,
+    2
+  ],
+  "agents": [
+    "a2c",
+    "ppo"
+  ],
+  "include_mvo": true,
+  "launched_runs": [
+    {
+      "seed": 1,
+      "return_code": 0,
+      "log_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214524_d_iqn_dss_finrl_baseline_multiseed_launcher\\logs\\seed_1_subprocess.log"
+    },
+    {
+      "seed": 2,
+      "return_code": 0,
+      "log_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214524_d_iqn_dss_finrl_baseline_multiseed_launcher\\logs\\seed_2_subprocess.log"
+    }
+  ],
+  "failed_run_count": 0,
+  "summary_run_return_code": 0,
+  "summary_log_path": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_214524_d_iqn_dss_finrl_baseline_multiseed_launcher\\logs\\finrl_multiseed_summary_subprocess.log",
+  "interpretation": "This launcher runs the FinRL/SB3 baseline suite with multiple random seeds. MVO can be included; if deterministic, it should produce std=0 across seeds."
+}

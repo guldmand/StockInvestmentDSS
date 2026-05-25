@@ -1,0 +1,22 @@
+{
+  "rank": 3,
+  "agent_name": "ppo",
+  "status": "ok",
+  "initial_value": 1000000.0,
+  "final_value": 1829820.725482361,
+  "profit_loss": 829820.7254823609,
+  "total_return_pct": 82.98207254823609,
+  "max_drawdown_pct": -34.4500108150792,
+  "annualized_volatility_pct": 36.57104057477324,
+  "annualized_sharpe": 0.8770403084841629,
+  "cvar_pct": -3.980708319399918,
+  "total_transaction_cost": null,
+  "total_trades": null,
+  "turnover_estimate_pct": null,
+  "finrl_trades": 1212.0,
+  "finrl_cost": 999.369701965332,
+  "trading_status": "ok_trading",
+  "action_mean_abs": 0.24504323188463847,
+  "action_max_abs": 0.9493691325187683,
+  "non_zero_action_steps": 600.0
+}

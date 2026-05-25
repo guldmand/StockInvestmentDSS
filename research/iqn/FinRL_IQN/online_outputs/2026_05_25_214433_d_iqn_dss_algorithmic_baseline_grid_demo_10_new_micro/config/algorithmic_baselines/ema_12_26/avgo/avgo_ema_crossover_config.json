@@ -1,0 +1,11 @@
+{
+  "strategy": "AVGO_ema_12_26",
+  "dataset_tag": "demo_10_new_micro",
+  "ticker": "AVGO",
+  "trade_data": "data\\market\\daily\\imports\\market_data_demo10_new_2010_2026.csv",
+  "initial_amount": 1000000.0,
+  "fast_window": 12,
+  "slow_window": 26,
+  "transaction_cost_pct": 0.001,
+  "signal_rule": "invested if fast EMA > slow EMA; otherwise cash; signal shifted by 1 day"
+}

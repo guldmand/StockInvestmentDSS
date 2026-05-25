@@ -1,0 +1,22 @@
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Created run directory: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Run id: 2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Dataset id: demo_10_new_micro
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Universe id: demo_10_new
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Date range: 2010-01-01 -> 2026-12-31
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Point in time: 2024-01-01
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Trade end date: 2026-12-31
+2026-05-25 21:45:26,873 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Baseline agents: ['a2c', 'ppo', 'mvo']
+2026-05-25 21:45:26,874 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Total timesteps per RL agent: 5000
+2026-05-25 21:45:26,874 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Initial amount: 1000000.0
+2026-05-25 21:45:26,874 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | hmax: 10000
+2026-05-25 21:45:26,874 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Device: auto
+2026-05-25 21:45:26,874 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Include MVO: True
+2026-05-25 21:45:50,538 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | FinRL baseline suite smoke test completed.
+2026-05-25 21:45:50,538 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Agents: ['a2c', 'ppo', 'mvo']
+2026-05-25 21:45:50,538 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Comparison path: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test\data\finrl_baseline_suite\finrl_baseline_suite_comparison.csv
+2026-05-25 21:45:50,539 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Comparison snapshot: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test\summary\finrl_baseline_suite_comparison_snapshot.csv
+2026-05-25 21:45:50,539 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Summary path: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test\summary\finrl_baseline_suite_smoke_summary.json
+2026-05-25 21:45:50,540 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | Comparison table:
+2026-05-25 21:45:50,540 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | rank=1 agent=a2c final_value=3151401.984306168 total_return_pct=215.1401984306168 max_drawdown_pct=-34.04024859900567 sharpe=1.6995172159931535
+2026-05-25 21:45:50,540 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | rank=2 agent=mvo final_value=2266925.6102143927 total_return_pct=126.69256102143929 max_drawdown_pct=-22.307136499432456 sharpe=1.5161097603091507
+2026-05-25 21:45:50,540 | INFO | stock_investment_dss.run.2026_05_25_214526_d_iqn_dss_finrl_baseline_suite_smoke_test | rank=3 agent=ppo final_value=1829807.5647327425 total_return_pct=82.98075647327425 max_drawdown_pct=-34.450289427081046 sharpe=0.8770289462566809

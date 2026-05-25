@@ -1,0 +1,22 @@
+{
+  "rank": 1,
+  "agent_name": "a2c",
+  "status": "ok",
+  "initial_value": 1000000.0,
+  "final_value": 3151401.984306168,
+  "profit_loss": 2151401.984306168,
+  "total_return_pct": 215.1401984306168,
+  "max_drawdown_pct": -34.04024859900567,
+  "annualized_volatility_pct": 31.233380125422855,
+  "annualized_sharpe": 1.6995172159931535,
+  "cvar_pct": -3.2276787372197533,
+  "total_transaction_cost": null,
+  "total_trades": null,
+  "turnover_estimate_pct": null,
+  "finrl_trades": 1206.0,
+  "finrl_cost": 998.9313585052491,
+  "trading_status": "ok_trading",
+  "action_mean_abs": 0.5973085559752459,
+  "action_max_abs": 1.0,
+  "non_zero_action_steps": 600.0
+}
