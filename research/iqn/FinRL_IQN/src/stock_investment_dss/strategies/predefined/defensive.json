@@ -1,0 +1,45 @@
+{
+  "strategy_id": "defensive",
+  "display_name": "Defensive",
+  "risk_profile": "low",
+  "objective": "capital_preservation",
+  "description": "Prioritizes capital preservation, lower drawdown, lower concentration, and a higher cash buffer. Suitable for investors who prefer stability over upside.",
+
+  "constraints": {
+    "allow_shorting": false,
+    "allow_margin": false,
+    "max_position_weight": 0.15,
+    "max_sector_weight": 0.35,
+    "min_cash_weight": 0.15,
+    "target_cash_weight": 0.20,
+    "max_turnover_per_decision": 0.20
+  },
+
+  "risk_policy": {
+    "lambda_cvar": 1.50,
+    "lambda_drawdown": 1.25,
+    "lambda_volatility": 1.00,
+    "lambda_transaction_cost": 0.50,
+    "lambda_concentration": 1.25,
+    "lambda_strategy_violation": 2.00,
+    "lambda_epistemic_uncertainty": 1.25,
+    "score_quantile": "q25",
+    "downside_metric": "cvar10",
+    "uncertainty_metric": "epistemic_uncertainty"
+  },
+
+  "allowed_actions": [
+    "HOLD",
+    "REBALANCE_TO_STRATEGY_TARGETS",
+    "REDUCE_LARGEST_POSITION_10",
+    "REDUCE_LARGEST_POSITION_25",
+    "INCREASE_CASH_TO_TARGET",
+    "ADD_TO_LOWEST_RISK_5"
+  ],
+
+  "rebalance": {
+    "frequency": "monthly",
+    "drift_threshold": 0.05,
+    "force_if_position_above_max": true
+  }
+}

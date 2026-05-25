@@ -1,0 +1,161 @@
+2026-05-17 19:02:10,535 | ERROR | stock_investment_dss.system | StockInvestmentDSS data pipeline test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_data_pipeline_test.py", line 143, in main
+    result = load_or_create_finrl_daily_dataset(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\finrl_data_pipeline.py", line 479, in load_or_create_finrl_daily_dataset
+    raise RuntimeError(
+RuntimeError: Could not create FinRL daily dataset. Download attempted: True. Download error: RuntimeError('FinRL YahooDownloader did not return any market data. This may be due to Yahoo/yfinance rate limiting.'). No valid import_file was provided.
+2026-05-17 21:51:56,445 | ERROR | stock_investment_dss.system | StockInvestmentDSS FinRL environment trade smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_finrl_environment_trade_smoke_test.py", line 343, in main
+    step_result = env.step(action)
+                  ^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\FinRL\FinRL\finrl\meta\env_stock_trading\env_stocktrading.py", line 340, in step
+    actions[index] = self._buy_stock(index, actions[index])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\FinRL\FinRL\finrl\meta\env_stock_trading\env_stocktrading.py", line 216, in _buy_stock
+    buy_num_shares = _do_buy()
+                     ^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\FinRL\FinRL\finrl\meta\env_stock_trading\env_stocktrading.py", line 185, in _do_buy
+    self.state[index + 2 * self.stock_dim + 1] != True
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: list index out of range
+2026-05-18 01:34:42,272 | ERROR | stock_investment_dss.system | StockInvestmentDSS discrete FinRL decision environment smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_discrete_finrl_decision_env_smoke_test.py", line 398, in main
+    observation, reward, terminated, truncated, info = env.step(
+                                                       ^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\environments\discrete_finrl_decision_env.py", line 89, in step
+    step_result = self.finrl_env.step(resolved_action.continuous_action)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\FinRL\FinRL\finrl\meta\env_stock_trading\env_stocktrading.py", line 315, in step
+    actions = actions.astype(
+              ^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'astype'
+2026-05-18 16:26:30,972 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 861, in main
+    split_result = create_point_in_time_split(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 166, in create_point_in_time_split
+    validate_point_in_time_split(
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 64, in validate_point_in_time_split
+    raise ValueError("Point-in-time train split is empty.")
+ValueError: Point-in-time train split is empty.
+2026-05-19 13:55:32,453 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1609, in main
+    split_result = create_point_in_time_split(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 166, in create_point_in_time_split
+    validate_point_in_time_split(
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 95, in validate_point_in_time_split
+    raise ValueError(
+ValueError: Train split is missing expected tickers: ['AAPL', 'MSFT', 'NVDA']
+2026-05-19 15:01:57,927 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1869, in main
+    split_result = create_point_in_time_split(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 166, in create_point_in_time_split
+    validate_point_in_time_split(
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\point_in_time_split.py", line 95, in validate_point_in_time_split
+    raise ValueError(
+ValueError: Train split is missing expected tickers: ['AAPL', 'AMZN', 'GOOGL']
+2026-05-19 17:01:46,485 | ERROR | stock_investment_dss.system | StockInvestmentDSS data pipeline test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_data_pipeline_test.py", line 177, in main
+    result = load_or_create_finrl_daily_dataset(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\finrl_data_pipeline.py", line 936, in load_or_create_finrl_daily_dataset
+    raw_data, processed_data = _load_finrl_generated_import(
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\finrl_data_pipeline.py", line 562, in _load_finrl_generated_import
+    imported = pd.read_csv(import_file)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\site-packages\pandas\io\parsers\readers.py", line 1026, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\site-packages\pandas\io\parsers\readers.py", line 620, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\site-packages\pandas\io\parsers\readers.py", line 1620, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\site-packages\pandas\io\parsers\readers.py", line 1880, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\site-packages\pandas\io\common.py", line 873, in get_handle
+    handle = open(
+             ^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN'
+2026-05-20 03:28:29,269 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1929, in main
+    evaluate_iqn_agent(
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1378, in evaluate_iqn_agent
+    action, action_label, estimate_rows = choose_action_from_distribution(
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1294, in choose_action_from_distribution
+    score = score_action_distribution(values, score_mode, risk_lambda)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1279, in score_action_distribution
+    raise ValueError(
+ValueError: Unsupported IQN score mode: q50. Use mean, q50_minus_cvar_penalty, or mean_plus_cvar10.
+2026-05-22 18:34:49,769 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1873, in main
+    run_paths = create_run_paths("d_iqn_dss_iqn_learning_curve_smoke_test")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\utilities\paths.py", line 103, in create_run_paths
+    directory.mkdir(parents=True, exist_ok=False)
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\pathlib.py", line 1116, in mkdir
+    os.mkdir(self, mode)
+FileExistsError: [WinError 183] Cannot create a file when that file already exists: 'C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_22_183449_d_iqn_dss_iqn_learning_curve_smoke_test'
+2026-05-24 21:45:14,639 | ERROR | stock_investment_dss.system | StockInvestmentDSS FinRL baseline suite smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\ticker_universes.py", line 109, in get_ticker_universe
+    return PREDEFINED_UNIVERSES[normalized_universe_id]
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'demo_10_new'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_finrl_baseline_suite_smoke_test.py", line 253, in main
+    daily_data_result = load_or_create_finrl_daily_dataset(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\finrl_data_pipeline.py", line 720, in load_or_create_finrl_daily_dataset
+    tickers = get_ticker_universe(universe_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\data\ticker_universes.py", line 112, in get_ticker_universe
+    raise ValueError(
+ValueError: Unknown universe_id='demo_10_new'. Available: demo_10, demo_2, demo_30, demo_5. For an ad-hoc universe, set STOCK_INVESTMENT_DSS_FINRL_TICKERS.
+2026-05-25 01:56:40,886 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1867, in main
+    iqn_config = create_iqn_config_from_environment(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1096, in create_iqn_config_from_environment
+    "device": torch.device(requested_device),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected one of cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone device type at start of device string: auto
+2026-05-25 01:56:43,716 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1867, in main
+    iqn_config = create_iqn_config_from_environment(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1096, in create_iqn_config_from_environment
+    "device": torch.device(requested_device),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected one of cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone device type at start of device string: auto
+2026-05-25 01:56:46,289 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1867, in main
+    iqn_config = create_iqn_config_from_environment(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\src\stock_investment_dss\runner\run_iqn_learning_curve_smoke_test.py", line 1096, in create_iqn_config_from_environment
+    "device": torch.device(requested_device),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected one of cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone device type at start of device string: auto

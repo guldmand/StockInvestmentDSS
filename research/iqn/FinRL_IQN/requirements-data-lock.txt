@@ -1,0 +1,9 @@
+yfinance==0.2.66
+curl_cffi==0.15.0
+websockets==13.1
+pandas==2.2.3
+numpy==2.4.3
+requests==2.32.4
+urllib3==1.26.20
+certifi==2026.4.22
+python-dotenv

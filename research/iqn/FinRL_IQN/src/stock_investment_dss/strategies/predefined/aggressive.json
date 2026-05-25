@@ -1,0 +1,46 @@
+{
+  "strategy_id": "aggressive",
+  "display_name": "Aggressive",
+  "risk_profile": "high",
+  "objective": "upside_growth",
+  "description": "Prioritizes upside and growth while accepting higher volatility, higher drawdown risk, and higher concentration. Still long-only and without margin.",
+
+  "constraints": {
+    "allow_shorting": false,
+    "allow_margin": false,
+    "max_position_weight": 0.35,
+    "max_sector_weight": 0.65,
+    "min_cash_weight": 0.00,
+    "target_cash_weight": 0.03,
+    "max_turnover_per_decision": 0.50
+  },
+
+  "risk_policy": {
+    "lambda_cvar": 0.30,
+    "lambda_drawdown": 0.35,
+    "lambda_volatility": 0.25,
+    "lambda_transaction_cost": 0.25,
+    "lambda_concentration": 0.30,
+    "lambda_strategy_violation": 1.00,
+    "lambda_epistemic_uncertainty": 0.35,
+    "score_quantile": "q75",
+    "downside_metric": "cvar10",
+    "uncertainty_metric": "epistemic_uncertainty"
+  },
+
+  "allowed_actions": [
+    "HOLD",
+    "REBALANCE_TO_STRATEGY_TARGETS",
+    "REDUCE_LARGEST_POSITION_10",
+    "ADD_TO_TOP_MOMENTUM_5",
+    "ADD_TO_TOP_MOMENTUM_10",
+    "ROTATE_WORST_TO_BEST_5",
+    "ROTATE_WORST_TO_BEST_10"
+  ],
+
+  "rebalance": {
+    "frequency": "monthly",
+    "drift_threshold": 0.12,
+    "force_if_position_above_max": true
+  }
+}

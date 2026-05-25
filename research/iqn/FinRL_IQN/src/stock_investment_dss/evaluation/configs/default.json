@@ -1,0 +1,56 @@
+{
+  "evaluation_id": "default",
+  "description": "Common evaluation suite for StockInvestmentDSS / D-IQN-DSS experiments.",
+
+  "portfolio_metrics": [
+    "total_return",
+    "annualized_return",
+    "volatility",
+    "sharpe",
+    "sortino",
+    "max_drawdown",
+    "cvar10",
+    "turnover",
+    "transaction_costs"
+  ],
+
+  "distributional_metrics": [
+    "q10",
+    "q25",
+    "q50",
+    "q75",
+    "q90",
+    "cvar10",
+    "iqn_spread",
+    "downside_tail_width"
+  ],
+
+  "uncertainty_metrics": [
+    "epistemic_uncertainty",
+    "evidential_confidence",
+    "uncertainty_adjusted_score"
+  ],
+
+  "decision_support_metrics": [
+    "decision_stability",
+    "action_switch_count",
+    "rebalance_count",
+    "strategy_violation_count",
+    "cash_target_violation_count",
+    "max_position_violation_count"
+  ],
+
+  "comparison_groups": [
+    "classical_baselines",
+    "parametric_rl",
+    "distributional_rl",
+    "uncertainty_aware_rl"
+  ],
+
+  "primary_metrics": [
+    "total_return",
+    "sharpe",
+    "max_drawdown",
+    "cvar10"
+  ]
+}

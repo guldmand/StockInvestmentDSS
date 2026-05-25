@@ -1,0 +1,34 @@
+__pycache__/
+*.pyc
+structure.txt
+.env
+.env.wandb.local
+docs/thesis_sections/
+# Wandb cache (skal være i outputs/runs/{id}/wandb/)
+wandb/
+.wandb/
+
+
+# data files
+/data
+/data/*
+
+# env
+.env
+.env.wandb.local
+
+# docs
+/docs
+/docs/*
+
+#outputs
+/outputs
+/outputs/*
+
+
+#external
+/external
+/external/*
+
+/notebooks/
+/notebooks/*
