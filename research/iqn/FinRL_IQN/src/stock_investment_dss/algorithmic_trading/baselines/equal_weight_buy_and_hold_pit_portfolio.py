@@ -47,6 +47,7 @@ def run_equal_weight_buy_and_hold_portfolio(
     trade_data: str | Path,
     dataset_tag: str,
     initial_amount: float = 1_000_000.0,
+    transaction_cost_pct: float = 0.001,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -98,7 +99,11 @@ def run_equal_weight_buy_and_hold_portfolio(
 
     tickers = price_wide.columns.tolist()
     first_prices = price_wide.iloc[0]
-    capital_per_asset = float(initial_amount) / len(tickers)
+    if transaction_cost_pct < 0:
+        raise ValueError("transaction_cost_pct must be non-negative.")
+    # Apply transaction cost at initial allocation (one buy per ticker).
+    capital_after_cost = float(initial_amount) * (1.0 - float(transaction_cost_pct))
+    capital_per_asset = capital_after_cost / len(tickers)
     shares = capital_per_asset / first_prices
 
     portfolio_values = price_wide.mul(shares, axis=1).sum(axis=1)
@@ -121,7 +126,11 @@ def run_equal_weight_buy_and_hold_portfolio(
     )
 
     if run_paths is None:
-        _folder = strategy_folder if (strategy_folder and strategy_folder.strip()) else "equal_weight_buy_and_hold"
+        _folder = (
+            strategy_folder
+            if (strategy_folder and strategy_folder.strip())
+            else "equal_weight_buy_and_hold"
+        )
         run_name = f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}"
         run_paths = create_run_paths(run_name)
     _sub = Path(output_subpath) if output_subpath else Path("")
@@ -146,6 +155,7 @@ def run_equal_weight_buy_and_hold_portfolio(
         "trade_data": str(trade_data),
         "initial_amount": float(initial_amount),
         "stock_dimension": int(len(tickers)),
+        "transaction_cost_pct": float(transaction_cost_pct),
         "tickers": tickers,
         "signal_rule": (
             "buy equal-dollar allocation on first trade date"

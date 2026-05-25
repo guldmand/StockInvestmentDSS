@@ -16,7 +16,8 @@ Point-in-time safety:
     price information is accessed.
 
 Caveats:
-    - Zero transaction costs are assumed.  Rebalancing costs are not modelled.
+    - Default 0.1% transaction cost per turnover applied at entry and each rebalance;
+      configurable via `transaction_cost_pct`.
     - Tickers with any missing (NaN) closing price over the full data window are
       excluded from the portfolio.  The filtering rule is applied once at
       initialisation using the full price matrix.
@@ -67,6 +68,7 @@ def run_naive_one_over_n_rebalanced(
     dataset_tag: str,
     initial_amount: float = 1_000_000.0,
     rebalance_frequency_days: int = 21,
+    transaction_cost_pct: float = 0.001,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -106,6 +108,8 @@ def run_naive_one_over_n_rebalanced(
     """
     if rebalance_frequency_days <= 0:
         raise ValueError("rebalance_frequency_days must be positive.")
+    if transaction_cost_pct < 0:
+        raise ValueError("transaction_cost_pct must be non-negative.")
 
     path = Path(trade_data)
     if not path.exists():
@@ -147,6 +151,12 @@ def run_naive_one_over_n_rebalanced(
     for t in range(n_days):
         prices_t = price_wide.iloc[t].values.astype(float)
         pv = float(np.dot(shares, prices_t))
+
+        # Apply transaction cost at entry (day 0): one buy per ticker.
+        if t == 0:
+            pv = pv * (1.0 - float(transaction_cost_pct))
+            shares = (pv / n) / prices_t
+
         portfolio_values[t] = pv
 
         # Rebalance trigger: every rebalance_frequency_days bars after inception.
@@ -155,8 +165,21 @@ def run_naive_one_over_n_rebalanced(
         is_rebalance = (t > 0) and (t % rebalance_frequency_days == 0)
         if is_rebalance:
             # Target 1/N weight; rebalance using today's closing prices.
-            target_capital = pv / n
-            shares = target_capital / prices_t
+            target_capital_per_ticker = pv / n
+            new_shares = target_capital_per_ticker / prices_t
+
+            # Compute turnover (sum of absolute share-value changes).
+            old_values = shares * prices_t
+            new_values = new_shares * prices_t
+            turnover = float(np.sum(np.abs(new_values - old_values)))
+
+            # Deduct transaction cost proportional to turnover.
+            rebalance_cost = turnover * float(transaction_cost_pct)
+            pv = pv - rebalance_cost
+            portfolio_values[t] = pv
+
+            # Re-derive shares with cost-adjusted capital.
+            shares = (pv / n) / prices_t
 
         weights_t = (shares * prices_t) / pv if pv > 0 else np.full(n, 1.0 / n)
         weight_records.append(
@@ -210,6 +233,7 @@ def run_naive_one_over_n_rebalanced(
         "trade_data": str(trade_data),
         "initial_amount": float(initial_amount),
         "rebalance_frequency_days": freq,
+        "transaction_cost_pct": float(transaction_cost_pct),
         "stock_dimension": n,
         "tickers": complete_tickers,
         "dropped_tickers_reason": (

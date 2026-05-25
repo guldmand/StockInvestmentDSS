@@ -69,6 +69,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+# Ensure src/ is on sys.path so consolidation imports work in the main process
+# without requiring the caller to set PYTHONPATH manually.
+_src_dir = Path(__file__).resolve().parent.parent / "src"
+if str(_src_dir) not in sys.path:
+    sys.path.insert(0, str(_src_dir))
+
 # ----------------------------------------------------------------------
 # Shared configuration (5-ticker subset, frozen import file)
 # ----------------------------------------------------------------------

@@ -54,7 +54,7 @@ def run_sma_crossover(
     initial_amount: float = 1_000_000.0,
     fast_window: int = 50,
     slow_window: int = 200,
-    transaction_cost_pct: float = 0.0,
+    transaction_cost_pct: float = 0.001,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -132,8 +132,14 @@ def run_sma_crossover(
     account.loc[account.index[0], "account_value"] = float(initial_amount)
 
     if run_paths is None:
-        _folder = strategy_folder if (strategy_folder and strategy_folder.strip()) else "sma_crossover"
-        run_name = f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        _folder = (
+            strategy_folder
+            if (strategy_folder and strategy_folder.strip())
+            else "sma_crossover"
+        )
+        run_name = (
+            f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        )
         run_paths = create_run_paths(run_name)
     _sub = Path(output_subpath) if output_subpath else Path("")
     data_dir = run_paths.data_directory / _sub

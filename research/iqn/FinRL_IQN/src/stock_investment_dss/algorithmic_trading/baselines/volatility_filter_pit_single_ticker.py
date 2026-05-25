@@ -58,6 +58,7 @@ def run_volatility_filter(
     momentum_window: int = 20,
     volatility_window: int = 20,
     max_annualized_volatility: float = 0.40,
+    transaction_cost_pct: float = 0.001,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -98,6 +99,8 @@ def run_volatility_filter(
         raise ValueError("volatility_window must be positive.")
     if max_annualized_volatility <= 0:
         raise ValueError("max_annualized_volatility must be positive.")
+    if transaction_cost_pct < 0:
+        raise ValueError("transaction_cost_pct must be non-negative.")
 
     ticker = ticker.upper()
     df = load_trade_data_single_ticker(trade_data, ticker)
@@ -116,7 +119,10 @@ def run_volatility_filter(
 
     # Shift by one trading day to avoid look-ahead bias.
     position = signal.shift(1).fillna(0.0)
-    strategy_return = position * daily_return
+    position_change = position.diff().abs().fillna(position.abs())
+    strategy_return = (position * daily_return) - (
+        position_change * float(transaction_cost_pct)
+    )
     account_value = float(initial_amount) * (1.0 + strategy_return).cumprod()
 
     account = pd.DataFrame(
@@ -135,8 +141,14 @@ def run_volatility_filter(
     )
 
     if run_paths is None:
-        _folder = strategy_folder if (strategy_folder and strategy_folder.strip()) else _STRATEGY_FOLDER
-        run_name = f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        _folder = (
+            strategy_folder
+            if (strategy_folder and strategy_folder.strip())
+            else _STRATEGY_FOLDER
+        )
+        run_name = (
+            f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        )
         run_paths = create_run_paths(run_name)
     _sub = Path(output_subpath) if output_subpath else Path("")
     data_dir = run_paths.data_directory / _sub
@@ -166,6 +178,7 @@ def run_volatility_filter(
         "momentum_window": int(momentum_window),
         "volatility_window": int(volatility_window),
         "max_annualized_volatility": float(max_annualized_volatility),
+        "transaction_cost_pct": float(transaction_cost_pct),
         "signal_rule": (
             "invested if momentum > 0 and annualized volatility <= threshold;"
             " otherwise cash; signal shifted by 1 day"

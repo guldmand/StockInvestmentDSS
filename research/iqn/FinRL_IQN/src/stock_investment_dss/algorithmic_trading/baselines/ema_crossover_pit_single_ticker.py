@@ -50,6 +50,7 @@ def run_ema_crossover(
     initial_amount: float = 1_000_000.0,
     fast_window: int = 12,
     slow_window: int = 26,
+    transaction_cost_pct: float = 0.001,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -81,6 +82,8 @@ def run_ema_crossover(
         raise ValueError("fast_window and slow_window must be positive.")
     if fast_window >= slow_window:
         raise ValueError("fast_window must be smaller than slow_window.")
+    if transaction_cost_pct < 0:
+        raise ValueError("transaction_cost_pct must be non-negative.")
 
     ticker = ticker.upper()
     df = load_trade_data_single_ticker(trade_data, ticker)
@@ -95,7 +98,11 @@ def run_ema_crossover(
     df["position"] = df["signal"].shift(1).fillna(0.0)
 
     returns = df["close"].pct_change().fillna(0.0)
-    account_value = float(initial_amount) * (1.0 + df["position"] * returns).cumprod()
+    position_change = df["position"].diff().abs().fillna(df["position"].abs())
+    strategy_return = (df["position"] * returns) - (
+        position_change * float(transaction_cost_pct)
+    )
+    account_value = float(initial_amount) * (1.0 + strategy_return).cumprod()
 
     account = pd.DataFrame(
         {
@@ -111,8 +118,14 @@ def run_ema_crossover(
     )
 
     if run_paths is None:
-        _folder = strategy_folder if (strategy_folder and strategy_folder.strip()) else "ema_crossover"
-        run_name = f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        _folder = (
+            strategy_folder
+            if (strategy_folder and strategy_folder.strip())
+            else "ema_crossover"
+        )
+        run_name = (
+            f"d_iqn_dss_algorithmic_baseline_{_folder}_{dataset_tag}_{ticker.lower()}"
+        )
         run_paths = create_run_paths(run_name)
     _sub = Path(output_subpath) if output_subpath else Path("")
     data_dir = run_paths.data_directory / _sub
@@ -138,6 +151,7 @@ def run_ema_crossover(
         "initial_amount": float(initial_amount),
         "fast_window": int(fast_window),
         "slow_window": int(slow_window),
+        "transaction_cost_pct": float(transaction_cost_pct),
         "signal_rule": (
             "invested if fast EMA > slow EMA; otherwise cash;"
             " signal shifted by 1 day"

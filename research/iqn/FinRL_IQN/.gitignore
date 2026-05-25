@@ -32,3 +32,12 @@ wandb/
 
 /notebooks/
 /notebooks/*
+
+
+# Backup folders from refactoring sessions
+/backup_*/
+
+# Transient log files (regenerated per run)
+/logs/system.log
+/logs/*
+/logs/*.log
