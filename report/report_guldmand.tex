@@ -1,0 +1,50 @@
+% Document class
+\documentclass[a4paper]{report}
+
+% Packages
+\usepackage{graphicx}
+
+% Document
+\begin{document}
+
+% Title page
+\title{Seiberg-Witten Theory and the Intersection Form}
+\author{
+Santiago Quintero de los Ríos\\[2em]
+\includegraphics[width=2.4cm]{images/logo.png}\\[2em]
+Supervisor: Gil Cavalcanti\\
+Second reader: Fabian Ziltener\\[1em]
+Utrecht University
+}
+\date{August 19, 2020}
+
+\maketitle
+
+
+% Abstract
+\include{chapters/abstract}
+
+% ToC
+\tableofcontents
+
+\include{chapters/hypotheses}
+\include{chapters/introduction}
+\include{chapters/background}
+\include{chapters/related_work_and_state_of_the_art}
+\include{chapters/methodology}
+\include{chapters/theory}
+\include{chapters/experiments}
+\include{chapters/proof_of_concept}
+\include{chapters/results}
+\include{chapters/conclusion}
+\include{chapters/future_perspectives}
+
+% References (Sources, Papers etc) & Bibliography (Books)
+\include{chapters/references}
+\include{chapters/bibliography}
+
+% Appendix
+\appendix
+\include{chapters/appendix}
+
+\end{document}

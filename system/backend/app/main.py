@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.market_data import router as market_data_router
+from app.market_data_repository import ensure_market_data_schema
 
 SESSION_TTL_HOURS = 24
 
@@ -35,6 +37,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.include_router(market_data_router)
 
 
 # -----------------------------------------------------------------------------
@@ -95,6 +99,7 @@ def init_auth_tables() -> None:
 def startup() -> None:
     """Initialize local PoC database tables on backend startup."""
     init_auth_tables()
+    ensure_market_data_schema()
 
 
 # -----------------------------------------------------------------------------

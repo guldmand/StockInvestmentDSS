@@ -1,0 +1,56 @@
+\contentsline {chapter}{Contents}{i}{section*.1}%
+\contentsline {chapter}{Introduction}{iii}{chapter*.3}%
+\contentsline {chapter}{\numberline {1}Preliminaries}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Gauge theory}{1}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Principal bundles, connections and curvature}{1}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Associated bundles and matter fields}{2}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}The space of connections}{2}{subsection.1.1.3}%
+\contentsline {section}{\numberline {1.2}Algebraic topology}{2}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Cohomology and cups}{2}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Orientations and caps}{2}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}The intersection pairing}{2}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Characteristic classes}{2}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Classifying spaces for line bundles and the first Chern class}{3}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Čech cohomology and the first Stiefel-Whitney class}{3}{subsection.1.3.2}%
+\contentsline {section}{\numberline {1.4}Hodge theory}{3}{section.1.4}%
+\contentsline {section}{\numberline {1.5}Elliptic regularity}{3}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Sobolev spaces}{3}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Elliptic operators}{3}{subsection.1.5.2}%
+\contentsline {chapter}{\numberline {2}Spin Geometry}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Clifford algebras}{4}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Definition and basic properties}{4}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Complex(ified) Clifford algebras}{4}{subsection.2.1.2}%
+\contentsline {section}{\numberline {2.2}The Spin group}{4}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Definition and examples}{4}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}When $n=4$}{4}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Lie algebra structures}{5}{subsection.2.2.3}%
+\contentsline {section}{\numberline {2.3}Representations}{5}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Classification and examples}{5}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}The Spin representation}{5}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Clifford multiplication and infinitesimal actions}{5}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Spin structures}{5}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}From local to global}{5}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Spinor bundles}{5}{subsection.2.4.2}%
+\contentsline {section}{\numberline {2.5}The Dirac operator}{5}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Spin connections}{5}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}The Dirac operator}{5}{subsection.2.5.2}%
+\contentsline {section}{\numberline {2.6}The world of $\operatorname {Spin}^{c}$}{5}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}The $\operatorname {Spin}^{c}$ group}{5}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Going global: $\operatorname {Spin}^{c}$-structures and spinors}{6}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}The complex spin connection and the coupled Dirac operator}{6}{subsection.2.6.3}%
+\contentsline {section}{\numberline {2.7}Final ingredient: The squaring map}{6}{section.2.7}%
+\contentsline {subsection}{\numberline {2.7.1}The linear squaring map}{6}{subsection.2.7.1}%
+\contentsline {subsection}{\numberline {2.7.2}The global squaring map}{6}{subsection.2.7.2}%
+\contentsline {chapter}{\numberline {3}The Seiberg-Witten Equations and Moduli Space}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}The gauge group and its action}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Topology of the Moduli Space}{7}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Dimension of $\mathcal {M}$}{7}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Generic smoothness}{7}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Orientation}{7}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Compactness}{7}{subsection.3.2.4}%
+\contentsline {section}{\numberline {3.3}The Seiberg-Witten invariant}{8}{section.3.3}%
+\contentsline {chapter}{\numberline {4}The Intersection Form and Donaldson's Theorem}{9}{chapter.4}%
+\contentsline {section}{\numberline {4.1}The intersection form of 4-manifolds}{9}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Unimodular symmetric forms}{9}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}The topology of four-manifolds}{9}{subsection.4.1.2}%
+\contentsline {section}{\numberline {4.2}Finale: Donaldson's theorem}{9}{section.4.2}%

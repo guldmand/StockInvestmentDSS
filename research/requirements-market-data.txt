@@ -1,0 +1,9 @@
+# Research dependencies for #166 notebook/smoke test.
+# Fix: package metadata name is sdu-dst, not SDU_DataScienceTool.
+pandas
+duckdb
+yfinance
+pyarrow
+ipykernel
+jupyter
+sdu-dst @ git+https://github.com/guldmand/SDU_DataScienceTool.git

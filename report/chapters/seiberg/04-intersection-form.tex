@@ -1,0 +1,37 @@
+\chapter{The Intersection Form and Donaldson's Theorem}
+
+\dropcap{T}{he intersection} form is one of the most important algebraic invariants of a closed oriented four-manifold. It connects embedded surfaces, cup products, Poincaré duality, and the classification of manifolds.
+
+\section{The intersection form of 4-manifolds}
+\begin{definitionbox}[Intersection form]
+Let $M$ be a closed, connected, oriented four-manifold. The intersection form is the symmetric bilinear pairing
+\[
+  q_M\colon H_2(M,\Z)\times H_2(M,\Z)\to \Z
+\]
+defined by
+\[
+  q_M(\sigma,\eta)=\langle \PD(\sigma)\smile \PD(\eta),[M]\rangle.
+\]
+\end{definitionbox}
+
+\begin{propositionbox}
+If $\alpha,\beta\in H_2(M,\Z)$ are represented by embedded surfaces $S_\alpha,S_\beta\subset M$, then
+\[
+  q_M(\alpha,\beta)=S_\alpha\cdot S_\beta.
+\]
+\end{propositionbox}
+
+\subsection{Unimodular symmetric forms}
+Unimodular symmetric forms may be definite or indefinite, even or odd. Their arithmetic properties determine much of the topology of simply connected four-manifolds.
+
+\subsection{The topology of four-manifolds}
+\begin{theorembox}[Freedman]
+Every unimodular symmetric bilinear form occurs as the intersection form of a closed, oriented, simply connected topological four-manifold, with the usual uniqueness distinction between even and odd forms.
+\end{theorembox}
+
+\section{Finale: Donaldson's theorem}
+\begin{theorembox}[Donaldson]
+Let $M$ be a smooth, closed, oriented, simply connected four-manifold. If the intersection form of $M$ is definite, then it is diagonalizable over $\Z$.
+\end{theorembox}
+
+This theorem demonstrates that the smooth category is much more rigid than the topological category. Seiberg-Witten theory provides a powerful route to constraints of this kind.
