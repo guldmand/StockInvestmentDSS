@@ -48,6 +48,8 @@ def run_equal_weight_buy_and_hold_portfolio(
     dataset_tag: str,
     initial_amount: float = 1_000_000.0,
     transaction_cost_pct: float = 0.001,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -90,6 +92,11 @@ def run_equal_weight_buy_and_hold_portfolio(
         index="date", columns="tic", values="close", aggfunc="last"
     ).sort_index()
     price_wide = price_wide.dropna(axis=1, how="any")
+
+    if pit_start_date is not None:
+        price_wide = price_wide[price_wide.index >= pd.Timestamp(pit_start_date)]
+    if pit_end_date is not None:
+        price_wide = price_wide[price_wide.index < pd.Timestamp(pit_end_date)]
 
     if price_wide.empty:
         raise ValueError(
@@ -156,6 +163,8 @@ def run_equal_weight_buy_and_hold_portfolio(
         "initial_amount": float(initial_amount),
         "stock_dimension": int(len(tickers)),
         "transaction_cost_pct": float(transaction_cost_pct),
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
         "tickers": tickers,
         "signal_rule": (
             "buy equal-dollar allocation on first trade date"

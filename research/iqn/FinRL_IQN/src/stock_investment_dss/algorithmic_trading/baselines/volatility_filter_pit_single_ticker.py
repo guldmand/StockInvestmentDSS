@@ -59,6 +59,8 @@ def run_volatility_filter(
     volatility_window: int = 20,
     max_annualized_volatility: float = 0.40,
     transaction_cost_pct: float = 0.001,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -119,6 +121,14 @@ def run_volatility_filter(
 
     # Shift by one trading day to avoid look-ahead bias.
     position = signal.shift(1).fillna(0.0)
+
+    if pit_start_date is not None:
+        df = df[df["date"] >= pd.Timestamp(pit_start_date)].copy()
+    if pit_end_date is not None:
+        df = df[df["date"] < pd.Timestamp(pit_end_date)].copy()
+    daily_return = df["close"].pct_change().fillna(0.0)
+    position = position.loc[df.index]
+
     position_change = position.diff().abs().fillna(position.abs())
     strategy_return = (position * daily_return) - (
         position_change * float(transaction_cost_pct)
@@ -131,9 +141,9 @@ def run_volatility_filter(
             "ticker": ticker,
             "close": df["close"],
             "daily_return": daily_return,
-            "momentum": momentum,
-            "annualized_volatility": annualized_volatility,
-            "signal": signal,
+            "momentum": momentum.loc[df.index],
+            "annualized_volatility": annualized_volatility.loc[df.index],
+            "signal": signal.loc[df.index],
             "position": position,
             "strategy_return": strategy_return,
             "account_value": account_value,
@@ -179,6 +189,8 @@ def run_volatility_filter(
         "volatility_window": int(volatility_window),
         "max_annualized_volatility": float(max_annualized_volatility),
         "transaction_cost_pct": float(transaction_cost_pct),
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
         "signal_rule": (
             "invested if momentum > 0 and annualized volatility <= threshold;"
             " otherwise cash; signal shifted by 1 day"

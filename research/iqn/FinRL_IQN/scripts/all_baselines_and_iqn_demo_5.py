@@ -175,6 +175,8 @@ def run_algorithmic_baselines(repo_root: Path) -> tuple[int, Optional[Path]]:
     env = os.environ.copy()
     env["PYTHONPATH"] = "src"
     env["PYTHONUNBUFFERED"] = "1"
+    env["STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME"] = PIT_POINT_IN_TIME
+    env["STOCK_INVESTMENT_DSS_PIT_TRADE_END_DATE"] = PIT_TRADE_END_DATE
 
     cmd = [
         sys.executable,

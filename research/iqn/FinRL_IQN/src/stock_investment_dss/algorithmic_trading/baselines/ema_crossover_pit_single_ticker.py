@@ -51,6 +51,8 @@ def run_ema_crossover(
     fast_window: int = 12,
     slow_window: int = 26,
     transaction_cost_pct: float = 0.001,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -96,6 +98,11 @@ def run_ema_crossover(
     )
     df["signal"] = (df["fast_ema"] > df["slow_ema"]).astype(int)
     df["position"] = df["signal"].shift(1).fillna(0.0)
+
+    if pit_start_date is not None:
+        df = df[df["date"] >= pd.Timestamp(pit_start_date)].copy()
+    if pit_end_date is not None:
+        df = df[df["date"] < pd.Timestamp(pit_end_date)].copy()
 
     returns = df["close"].pct_change().fillna(0.0)
     position_change = df["position"].diff().abs().fillna(df["position"].abs())
@@ -152,6 +159,8 @@ def run_ema_crossover(
         "fast_window": int(fast_window),
         "slow_window": int(slow_window),
         "transaction_cost_pct": float(transaction_cost_pct),
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
         "signal_rule": (
             "invested if fast EMA > slow EMA; otherwise cash;"
             " signal shifted by 1 day"

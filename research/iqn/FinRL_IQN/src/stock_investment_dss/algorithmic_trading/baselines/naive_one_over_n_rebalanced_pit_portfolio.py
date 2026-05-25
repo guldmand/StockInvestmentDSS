@@ -69,6 +69,8 @@ def run_naive_one_over_n_rebalanced(
     initial_amount: float = 1_000_000.0,
     rebalance_frequency_days: int = 21,
     transaction_cost_pct: float = 0.001,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -135,6 +137,13 @@ def run_naive_one_over_n_rebalanced(
     if not complete_tickers:
         raise ValueError("No tickers with complete price history found in trade data.")
     price_wide = price_wide[complete_tickers]
+
+    if pit_start_date is not None:
+        price_wide = price_wide[price_wide.index >= pd.Timestamp(pit_start_date)]
+    if pit_end_date is not None:
+        price_wide = price_wide[price_wide.index < pd.Timestamp(pit_end_date)]
+    if price_wide.empty:
+        raise ValueError("No rows in trade window after PIT date filter.")
 
     n = len(complete_tickers)
     dates = price_wide.index
@@ -234,6 +243,8 @@ def run_naive_one_over_n_rebalanced(
         "initial_amount": float(initial_amount),
         "rebalance_frequency_days": freq,
         "transaction_cost_pct": float(transaction_cost_pct),
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
         "stock_dimension": n,
         "tickers": complete_tickers,
         "dropped_tickers_reason": (

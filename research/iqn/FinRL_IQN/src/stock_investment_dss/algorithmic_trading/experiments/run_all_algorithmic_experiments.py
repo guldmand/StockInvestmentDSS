@@ -408,6 +408,8 @@ def _run_single_ticker_grid(
     skip_buy_and_hold: bool,
     continue_on_error: bool,
     run_paths: RunPaths,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
 ) -> List[Dict[str, Any]]:
     records = []
     for ticker in tickers:
@@ -427,6 +429,8 @@ def _run_single_ticker_grid(
                     strategy_folder=folder,
                     run_paths=run_paths,
                     output_subpath=f"algorithmic_baselines/{folder}/{ticker.lower()}",
+                    pit_start_date=pit_start_date,
+                    pit_end_date=pit_end_date,
                     **params,
                 )
                 m = _read_metrics_row(result.get("metrics"))
@@ -478,6 +482,8 @@ def _run_portfolio_grid(
     configs: List[Dict[str, Any]],
     continue_on_error: bool,
     run_paths: RunPaths,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
 ) -> List[Dict[str, Any]]:
     records = []
     for cfg in configs:
@@ -495,6 +501,8 @@ def _run_portfolio_grid(
                 strategy_folder=folder,
                 run_paths=run_paths,
                 output_subpath=f"algorithmic_baselines/{folder}",
+                pit_start_date=pit_start_date,
+                pit_end_date=pit_end_date,
                 **params,
             )
             m = _read_metrics_row(result.get("metrics"))
@@ -597,12 +605,33 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Log errors and continue rather than raising on first failure.",
     )
+    p.add_argument(
+        "--pit-start",
+        default=None,
+        metavar="DATE",
+        help="PIT trade window start date (ISO format, e.g. 2024-01-01).",
+    )
+    p.add_argument(
+        "--pit-end",
+        default=None,
+        metavar="DATE",
+        help="PIT trade window end date, exclusive (ISO format, e.g. 2026-12-31).",
+    )
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    import os as _os
+
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    pit_start_date = args.pit_start or _os.environ.get(
+        "STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME"
+    )
+    pit_end_date = args.pit_end or _os.environ.get(
+        "STOCK_INVESTMENT_DSS_PIT_TRADE_END_DATE"
+    )
 
     trade_data = Path(args.trade_data)
     if not trade_data.exists():
@@ -626,11 +655,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         shared_run_paths.logs_directory / "grid_runner.log", encoding="utf-8"
     )
     file_handler.setFormatter(
-        logging.Formatter("%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S")
+        logging.Formatter(
+            "%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%H:%M:%S"
+        )
     )
     logging.getLogger().addHandler(file_handler)
 
     import json as _json
+
     shared_run_paths.config_directory.mkdir(parents=True, exist_ok=True)
     grid_config = {
         "dataset_tag": args.dataset_tag,
@@ -641,6 +673,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "run_portfolio": run_portfolio,
         "skip_buy_and_hold": args.skip_buy_and_hold,
         "rebalance_frequency_days": args.rebalance_frequency_days,
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
     }
     with open(shared_run_paths.config_directory / "grid_config.json", "w") as _fh:
         _json.dump(grid_config, _fh, indent=2)
@@ -659,6 +693,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             skip_buy_and_hold=args.skip_buy_and_hold,
             continue_on_error=args.continue_on_error,
             run_paths=shared_run_paths,
+            pit_start_date=pit_start_date,
+            pit_end_date=pit_end_date,
         )
 
     if run_portfolio:
@@ -670,6 +706,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             configs=PORTFOLIO_CONFIGS,
             continue_on_error=args.continue_on_error,
             run_paths=shared_run_paths,
+            pit_start_date=pit_start_date,
+            pit_end_date=pit_end_date,
         )
 
     if ticker_records:

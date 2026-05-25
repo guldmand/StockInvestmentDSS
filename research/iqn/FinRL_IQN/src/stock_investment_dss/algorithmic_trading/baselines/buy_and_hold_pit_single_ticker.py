@@ -49,6 +49,8 @@ def run_buy_and_hold(
     initial_amount: float = 1_000_000.0,
     price_column: str | None = None,
     transaction_cost_pct: float = 0.001,
+    pit_start_date: str | None = None,
+    pit_end_date: str | None = None,
     strategy_folder: str | None = None,
     run_paths: Optional[RunPaths] = None,
     output_subpath: Optional[str] = None,
@@ -109,6 +111,13 @@ def run_buy_and_hold(
     if df.empty:
         raise ValueError(f"No valid prices found for ticker: {ticker!r}")
 
+    if pit_start_date is not None:
+        df = df[df[date_col] >= pd.Timestamp(pit_start_date)].copy()
+    if pit_end_date is not None:
+        df = df[df[date_col] < pd.Timestamp(pit_end_date)].copy()
+    if df.empty:
+        raise ValueError(f"No rows in trade window for ticker: {ticker!r}")
+
     first_price = float(df[price_col].iloc[0])
     if first_price <= 0:
         raise ValueError(f"First price must be positive.  Got: {first_price}")
@@ -165,6 +174,8 @@ def run_buy_and_hold(
         "initial_amount": float(initial_amount),
         "price_column_used": price_col,
         "transaction_cost_pct": float(transaction_cost_pct),
+        "pit_start_date": pit_start_date,
+        "pit_end_date": pit_end_date,
         "signal_rule": ("buy at first available price and hold until final trade date"),
     }
 
