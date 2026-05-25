@@ -1,0 +1,59 @@
+--- original/iqn_net.py
++++ updated/iqn_net.py
+@@ -29,6 +29,7 @@
+         action_dim: int,
+
+         hidden_dim: int,
+
+         cosine_embedding_dim: int,
+
++        use_layer_norm: bool = False,
+
+     ):
+
+         super().__init__()
+
+ 
+
+@@ -36,10 +37,17 @@
+         self.hidden_dim = hidden_dim
+
+         self.cosine_embedding_dim = cosine_embedding_dim
+
+ 
+
+-        self.state_encoder = nn.Sequential(
+
+-            nn.Linear(state_dim, hidden_dim),
+
+-            nn.ReLU(),
+
+-        )
+
++        if use_layer_norm:
+
++            self.state_encoder = nn.Sequential(
+
++                nn.Linear(state_dim, hidden_dim),
+
++                nn.LayerNorm(hidden_dim),
+
++                nn.ReLU(),
+
++            )
+
++        else:
+
++            self.state_encoder = nn.Sequential(
+
++                nn.Linear(state_dim, hidden_dim),
+
++                nn.ReLU(),
+
++            )
+
+ 
+
+         self.tau_embedding = nn.Sequential(
+
+             nn.Linear(cosine_embedding_dim, hidden_dim),

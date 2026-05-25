@@ -1,0 +1,44 @@
+--- original/iqn_config.py
++++ updated/iqn_config.py
+@@ -199,6 +199,21 @@
+     kappa: float = field(
+
+         default_factory=lambda: _env_float("STOCK_INVESTMENT_DSS_IQN_KAPPA", 1.0)
+
+     )
+
++    grad_clip_norm: float = field(
+
++        default_factory=lambda: _env_float(
+
++            "STOCK_INVESTMENT_DSS_IQN_GRAD_CLIP_NORM", 10.0
+
++        )
+
++    )
+
++    state_norm_scale: float = field(
+
++        default_factory=lambda: _env_float(
+
++            "STOCK_INVESTMENT_DSS_IQN_STATE_NORM_SCALE", 1.0
+
++        )
+
++    )
+
++    use_layer_norm: bool = field(
+
++        default_factory=lambda: _env_bool(
+
++            "STOCK_INVESTMENT_DSS_IQN_USE_LAYER_NORM", False
+
++        )
+
++    )
+
+ 
+
+     # Exploration schedule
+
+     epsilon_start: float = field(

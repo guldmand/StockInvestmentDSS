@@ -1,0 +1,21 @@
+2026-05-20 15:57:17,297 | INFO | stock_investment_dss.system | Starting StockInvestmentDSS IQN learning curve multiseed launcher.
+2026-05-20 15:57:17,298 | INFO | stock_investment_dss.system | Project root: C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN
+2026-05-20 15:57:17,305 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Created run directory: C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\outputs\runs\2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher
+2026-05-20 15:57:17,305 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Run id: 2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher
+2026-05-20 15:57:17,305 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seeds: [1, 2, 3, 4, 5]
+2026-05-20 15:57:17,305 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Stop on failure: False
+2026-05-20 15:57:17,306 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Run summary after: True
+2026-05-20 15:57:17,306 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=1
+2026-05-20 15:59:55,716 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 1 completed successfully.
+2026-05-20 15:59:55,717 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=2
+2026-05-20 16:02:33,403 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 2 completed successfully.
+2026-05-20 16:02:33,403 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=3
+2026-05-20 16:05:12,172 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 3 completed successfully.
+2026-05-20 16:05:12,172 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=4
+2026-05-20 16:07:49,445 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 4 completed successfully.
+2026-05-20 16:07:49,445 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=5
+2026-05-20 16:10:27,334 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 5 completed successfully.
+2026-05-20 16:10:27,335 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching multiseed summary runner.
+2026-05-20 16:10:29,932 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Multiseed summary completed successfully.
+2026-05-20 16:10:29,933 | INFO | stock_investment_dss.run.2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Wrote launcher summary: C:\Users\gurug\Dropbox\DataScience\Speciale\D-IQN-DSS\FinRL_IQN\outputs\runs\2026_05_20_155717_d_iqn_dss_iqn_learning_curve_multiseed_launcher\summary\iqn_learning_curve_multiseed_launcher_summary.json
+2026-05-20 16:10:29,934 | INFO | stock_investment_dss.system | StockInvestmentDSS IQN learning curve multiseed launcher completed.

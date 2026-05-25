@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "run_id": "2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic",
+  "source_summary_run_id": "2026_05_20_141754_d_iqn_dss_iqn_learning_curve_multiseed_summary",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "seed_status_counts": {
+    "no_trade": 4,
+    "active_trading": 1
+  },
+  "outputs": {
+    "seed_summary": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\summary\\iqn_reward_action_diagnostic_by_seed.csv",
+    "training_by_action": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\summary\\iqn_reward_action_diagnostic_training_by_action.csv",
+    "status_comparison": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\summary\\iqn_reward_action_diagnostic_status_comparison.csv",
+    "summary_json": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\summary\\iqn_reward_action_diagnostic_summary.json",
+    "summary_md": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\summary\\iqn_reward_action_diagnostic_summary.md",
+    "action_plot": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\plots\\iqn_reward_action_training_action_counts.png",
+    "gap_plot": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\D-IQN-DSS\\FinRL_IQN\\outputs\\runs\\2026_05_20_141756_d_iqn_dss_iqn_reward_action_diagnostic\\plots\\iqn_reward_action_hold_buy_gap.png"
+  }
+}

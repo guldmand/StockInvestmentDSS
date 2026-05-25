@@ -1,0 +1,48 @@
+--- original/iqn_agent.py
++++ updated/iqn_agent.py
+@@ -48,6 +48,7 @@
+             action_dim=action_dim,
+
+             hidden_dim=config.hidden_dim,
+
+             cosine_embedding_dim=config.cosine_embedding_dim,
+
++            use_layer_norm=config.use_layer_norm,
+
+         ).to(self.device)
+
+ 
+
+         self.target_net = IQNNetwork(
+
+@@ -55,6 +56,7 @@
+             action_dim=action_dim,
+
+             hidden_dim=config.hidden_dim,
+
+             cosine_embedding_dim=config.cosine_embedding_dim,
+
++            use_layer_norm=config.use_layer_norm,
+
+         ).to(self.device)
+
+ 
+
+         self.target_net.load_state_dict(self.online_net.state_dict())
+
+@@ -252,7 +254,7 @@
+         loss.backward()
+
+         torch.nn.utils.clip_grad_norm_(
+
+             self.online_net.parameters(),
+
+-            max_norm=10.0,
+
++            max_norm=self.config.grad_clip_norm,
+
+         )
+
+         self.optimizer.step()
+
+ 

@@ -1,0 +1,1031 @@
+--- original/run_iqn_learning_curve_smoke_test.py
++++ updated/run_iqn_learning_curve_smoke_test.py
+@@ -82,7 +82,6 @@
+     return data
+
+ 
+
+ 
+
+-
+
+ def json_safe_value(value: Any) -> Any:
+
+     """Convert common non-JSON values to JSON-safe structures."""
+
+ 
+
+@@ -113,7 +112,9 @@
+     return str(value)
+
+ 
+
+ 
+
+-def get_metadata_value(metadata: dict[str, Any], *keys: str, default: Any = None) -> Any:
+
++def get_metadata_value(
+
++    metadata: dict[str, Any], *keys: str, default: Any = None
+
++) -> Any:
+
+     """Read the first available metadata key from a potentially sparse dict."""
+
+ 
+
+     if not isinstance(metadata, dict):
+
+@@ -177,36 +178,52 @@
+ ) -> dict[str, Any]:
+
+     """Build a transparent data acquisition report for successful and failed runs."""
+
+ 
+
+-    metadata = getattr(daily_data_result, "metadata", {}) if daily_data_result is not None else {}
+
++    metadata = (
+
++        getattr(daily_data_result, "metadata", {})
+
++        if daily_data_result is not None
+
++        else {}
+
++    )
+
+     if not isinstance(metadata, dict):
+
+         metadata = {}
+
+ 
+
+     result_tickers = list(getattr(daily_data_result, "tickers", []) or [])
+
+-    requested_tickers = list(tickers or result_tickers or metadata.get("tickers", []) or [])
+
++    requested_tickers = list(
+
++        tickers or result_tickers or metadata.get("tickers", []) or []
+
++    )
+
+ 
+
+     failure_message = str((failure or {}).get("message") or "")
+
+-    missing_expected_tickers = parse_missing_expected_tickers_from_error(failure_message)
+
+-
+
+-    metadata_failed_tickers = get_metadata_value(
+
+-        metadata,
+
+-        "failed_tickers",
+
+-        "failed_downloads",
+
+-        "download_failed_tickers",
+
+-        default=[],
+
+-    ) or []
+
+-    metadata_downloaded_tickers = get_metadata_value(
+
+-        metadata,
+
+-        "downloaded_tickers",
+
+-        "successful_tickers",
+
+-        "successful_downloads",
+
+-        default=[],
+
+-    ) or []
+
++    missing_expected_tickers = parse_missing_expected_tickers_from_error(
+
++        failure_message
+
++    )
+
++
+
++    metadata_failed_tickers = (
+
++        get_metadata_value(
+
++            metadata,
+
++            "failed_tickers",
+
++            "failed_downloads",
+
++            "download_failed_tickers",
+
++            default=[],
+
++        )
+
++        or []
+
++    )
+
++    metadata_downloaded_tickers = (
+
++        get_metadata_value(
+
++            metadata,
+
++            "downloaded_tickers",
+
++            "successful_tickers",
+
++            "successful_downloads",
+
++            default=[],
+
++        )
+
++        or []
+
++    )
+
+ 
+
+     failed_tickers = sorted(
+
+         set(str(item).upper() for item in metadata_failed_tickers)
+
+         | set(missing_expected_tickers)
+
+     )
+
+-    successful_tickers = sorted(str(item).upper() for item in metadata_downloaded_tickers)
+
++    successful_tickers = sorted(
+
++        str(item).upper() for item in metadata_downloaded_tickers
+
++    )
+
+ 
+
+     actual_data_method = get_metadata_value(
+
+         metadata,
+
+@@ -247,13 +264,19 @@
+         "final_source_used": (
+
+             "canonical_cache"
+
+             if cache_used
+
+-            else "import_file"
+
+-            if import_file_used
+
+-            else "fresh_download"
+
+-            if download_success
+
+-            else "partial_or_failed_download"
+
+-            if download_attempted
+
+-            else "unknown"
+
++            else (
+
++                "import_file"
+
++                if import_file_used
+
++                else (
+
++                    "fresh_download"
+
++                    if download_success
+
++                    else (
+
++                        "partial_or_failed_download"
+
++                        if download_attempted
+
++                        else "unknown"
+
++                    )
+
++                )
+
++            )
+
+         ),
+
+         "use_cache_requested": use_cache,
+
+         "cache_used": cache_used,
+
+@@ -261,7 +284,9 @@
+         "force_download": force_download,
+
+         "download_attempted": download_attempted,
+
+         "download_success": download_success,
+
+-        "download_method_attempted": get_metadata_value(metadata, "download_method_attempted"),
+
++        "download_method_attempted": get_metadata_value(
+
++            metadata, "download_method_attempted"
+
++        ),
+
+         "downloaded_tickers": successful_tickers,
+
+         "failed_tickers": failed_tickers,
+
+         "fallback_used": fallback_used,
+
+@@ -622,10 +647,6 @@
+     logger.info("Wrote failure provenance summary: %s", failure_json_path)
+
+ 
+
+ 
+
+-
+
+-
+
+-
+
+-
+
+ def make_wandb_key(value: str) -> str:
+
+     """Return a W&B-safe metric/media key without path separators."""
+
+ 
+
+@@ -649,12 +670,15 @@
+     for column in safe_df.columns:
+
+         if safe_df[column].dtype == "object":
+
+             safe_df[column] = safe_df[column].map(
+
+-                lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+-                if isinstance(value, (dict, list, tuple, set))
+
+-                else value
+
++                lambda value: (
+
++                    json.dumps(value, ensure_ascii=False, sort_keys=True)
+
++                    if isinstance(value, (dict, list, tuple, set))
+
++                    else value
+
++                )
+
+             )
+
+ 
+
+     return safe_df.replace({np.nan: None})
+
++
+
+ 
+
+ def create_wandb_runtime_config(
+
+     *,
+
+@@ -1024,6 +1048,7 @@
+         wandb_run.finish()
+
+     except Exception:
+
+         pass
+
++
+
+ 
+
+ def create_risk_profile_from_environment() -> InvestorRiskProfile:
+
+     preset = (
+
+@@ -1263,22 +1288,61 @@
+     score_mode: str,
+
+     risk_lambda: float,
+
+ ) -> float:
+
++    """Score an IQN action return distribution for evaluation-time action choice.
+
++
+
++    This function is the DSS/evaluation-time action-selection policy on top of
+
++    the IQN distribution estimates. It is not the IQN training loss.
+
++
+
++    Supported ablation modes:
+
++    - mean
+
++    - q50 / median
+
++    - q25, q75, q90
+
++    - cvar10
+
++    - q50_minus_cvar_penalty
+
++    - mean_minus_cvar_penalty
+
++    - mean_plus_cvar10
+
++    """
+
++
+
++    normalized_mode = str(score_mode or "q50_minus_cvar_penalty").strip().lower()
+
++
+
+     mean = float(values.get("mean", 0.0))
+
++    q25 = float(values.get("q25", 0.0))
+
+     q50 = float(values.get("q50", 0.0))
+
++    q75 = float(values.get("q75", 0.0))
+
++    q90 = float(values.get("q90", 0.0))
+
+     cvar10 = float(values.get("cvar10", 0.0))
+
+ 
+
+-    if score_mode == "mean":
+
++    if normalized_mode == "mean":
+
+         return mean
+
+ 
+
+-    if score_mode == "q50_minus_cvar_penalty":
+
++    if normalized_mode in {"q50", "median"}:
+
++        return q50
+
++
+
++    if normalized_mode == "q25":
+
++        return q25
+
++
+
++    if normalized_mode == "q75":
+
++        return q75
+
++
+
++    if normalized_mode == "q90":
+
++        return q90
+
++
+
++    if normalized_mode == "cvar10":
+
++        return cvar10
+
++
+
++    if normalized_mode == "q50_minus_cvar_penalty":
+
+         return q50 - risk_lambda * abs(cvar10)
+
+ 
+
+-    if score_mode == "mean_plus_cvar10":
+
++    if normalized_mode == "mean_minus_cvar_penalty":
+
++        return mean - risk_lambda * abs(cvar10)
+
++
+
++    if normalized_mode == "mean_plus_cvar10":
+
+         return mean + cvar10
+
+ 
+
+     raise ValueError(
+
+         f"Unsupported IQN score mode: {score_mode}. "
+
+-        "Use mean, q50_minus_cvar_penalty, or mean_plus_cvar10."
+
++        "Use mean, q50, median, q25, q75, q90, cvar10, "
+
++        "q50_minus_cvar_penalty, mean_minus_cvar_penalty, or mean_plus_cvar10."
+
+     )
+
+ 
+
+ 
+
+@@ -1335,6 +1399,7 @@
+     num_quantiles: int,
+
+     max_eval_steps: int,
+
+     disable_change_strategy: bool,
+
++    state_norm_scale: float = 1.0,
+
+ ) -> tuple[dict[str, Any], list[dict[str, Any]], pd.DataFrame, list[dict[str, Any]]]:
+
+     env, _prepared_trade_data, _metadata = create_discrete_finrl_env(
+
+         tickers=tickers,
+
+@@ -1350,6 +1415,8 @@
+     reset_result = env.reset()
+
+     observation, _reset_info = unpack_reset_result(reset_result)
+
+     state = np.asarray(observation, dtype=np.float32).reshape(-1)
+
++    if state_norm_scale != 1.0:
+
++        state = state / state_norm_scale
+
+ 
+
+     was_training = agent.online_net.training
+
+     agent.online_net.eval()
+
+@@ -1448,15 +1515,21 @@
+                     holdings_after.get(selected_ticker) if selected_ticker else None
+
+                 ),
+
+                 "selected_ticker_holdings_delta": (
+
+-                    executed_holdings_delta.get(selected_ticker) if selected_ticker else None
+
++                    executed_holdings_delta.get(selected_ticker)
+
++                    if selected_ticker
+
++                    else None
+
+                 ),
+
+                 "holdings_before_json": json.dumps(holdings_before, sort_keys=True),
+
+                 "holdings_after_json": json.dumps(holdings_after, sort_keys=True),
+
+-                "holdings_delta_json": json.dumps(executed_holdings_delta, sort_keys=True),
+
++                "holdings_delta_json": json.dumps(
+
++                    executed_holdings_delta, sort_keys=True
+
++                ),
+
+             }
+
+         )
+
+ 
+
+         state = np.asarray(next_observation, dtype=np.float32).reshape(-1)
+
++        if state_norm_scale != 1.0:
+
++            state = state / state_norm_scale
+
+         eval_step += 1
+
+ 
+
+     asset_memory = env.save_asset_memory()
+
+@@ -1645,9 +1718,10 @@
+         )
+
+         set_global_seed(random_seed)
+
+ 
+
+-        explicit_tickers_text = (
+
+-            get_environment_variable("STOCK_INVESTMENT_DSS_FINRL_TICKERS", default=None)
+
+-            or get_environment_variable("STOCK_INVESTMENT_DSS_DAILY_DATA_TICKERS", default=None)
+
++        explicit_tickers_text = get_environment_variable(
+
++            "STOCK_INVESTMENT_DSS_FINRL_TICKERS", default=None
+
++        ) or get_environment_variable(
+
++            "STOCK_INVESTMENT_DSS_DAILY_DATA_TICKERS", default=None
+
+         )
+
+         universe_id = (
+
+             get_environment_variable("STOCK_INVESTMENT_DSS_UNIVERSE_ID", default=None)
+
+@@ -1884,8 +1958,12 @@
+                 wandb_run.config.update(
+
+                     {
+
+                         "dataset.tickers": tickers,
+
+-                        "point_in_time_split.train_row_count": int(len(split_result.train_data)),
+
+-                        "point_in_time_split.trade_row_count": int(len(split_result.trade_data)),
+
++                        "point_in_time_split.train_row_count": int(
+
++                            len(split_result.train_data)
+
++                        ),
+
++                        "point_in_time_split.trade_row_count": int(
+
++                            len(split_result.trade_data)
+
++                        ),
+
+                     },
+
+                     allow_val_change=True,
+
+                 )
+
+@@ -1910,6 +1988,9 @@
+         state_dim = int(state.shape[0])
+
+         action_dim = int(train_env.action_space.n)
+
+ 
+
++        if iqn_config.state_norm_scale != 1.0:
+
++            state = state / iqn_config.state_norm_scale
+
++
+
+         agent = IQNAgent(state_dim=state_dim, action_dim=action_dim, config=iqn_config)
+
+ 
+
+         training_records: list[dict[str, Any]] = []
+
+@@ -1925,24 +2006,28 @@
+         done = False
+
+ 
+
+         # Initial untrained eval baseline.
+
+-        initial_eval_summary, initial_distribution_rows, _initial_asset_memory, initial_step_rows = (
+
+-            evaluate_iqn_agent(
+
+-                agent=agent,
+
+-                tickers=tickers,
+
+-                trade_data=split_result.trade_data,
+
+-                step=0,
+
+-                initial_amount=initial_amount,
+
+-                hmax=hmax,
+
+-                buy_cost_pct=buy_cost_pct,
+
+-                sell_cost_pct=sell_cost_pct,
+
+-                reward_scaling=reward_scaling,
+
+-                risk_profile=risk_profile,
+
+-                score_mode=score_mode,
+
+-                risk_lambda=risk_lambda,
+
+-                num_quantiles=num_quantiles,
+
+-                max_eval_steps=max_eval_steps,
+
+-                disable_change_strategy=disable_change_strategy,
+
+-            )
+
++        (
+
++            initial_eval_summary,
+
++            initial_distribution_rows,
+
++            _initial_asset_memory,
+
++            initial_step_rows,
+
++        ) = evaluate_iqn_agent(
+
++            agent=agent,
+
++            tickers=tickers,
+
++            trade_data=split_result.trade_data,
+
++            step=0,
+
++            initial_amount=initial_amount,
+
++            hmax=hmax,
+
++            buy_cost_pct=buy_cost_pct,
+
++            sell_cost_pct=sell_cost_pct,
+
++            reward_scaling=reward_scaling,
+
++            risk_profile=risk_profile,
+
++            score_mode=score_mode,
+
++            risk_lambda=risk_lambda,
+
++            num_quantiles=num_quantiles,
+
++            max_eval_steps=max_eval_steps,
+
++            disable_change_strategy=disable_change_strategy,
+
++            state_norm_scale=iqn_config.state_norm_scale,
+
+         )
+
+         eval_records.append(initial_eval_summary)
+
+         eval_distribution_rows.extend(initial_distribution_rows)
+
+@@ -1974,6 +2059,8 @@
+                 reset_result = train_env.reset()
+
+                 observation, reset_info = unpack_reset_result(reset_result)
+
+                 state = np.asarray(observation, dtype=np.float32).reshape(-1)
+
++                if iqn_config.state_norm_scale != 1.0:
+
++                    state = state / iqn_config.state_norm_scale
+
+                 episode_index += 1
+
+                 episode_reward = 0.0
+
+                 episode_steps = 0
+
+@@ -1997,6 +2084,8 @@
+                 action
+
+             )
+
+             next_state = np.asarray(next_observation, dtype=np.float32).reshape(-1)
+
++            if iqn_config.state_norm_scale != 1.0:
+
++                next_state = next_state / iqn_config.state_norm_scale
+
+             done = bool(terminated or truncated)
+
+ 
+
+             add_transition_to_replay_buffer(
+
+@@ -2062,7 +2151,9 @@
+                         "train/loss": loss_value,
+
+                         "train/epsilon": agent.epsilon(step),
+
+                         "train/buffer_size": buffer_size,
+
+-                        "train/portfolio_value_after": state_after.get("portfolio_value"),
+
++                        "train/portfolio_value_after": state_after.get(
+
++                            "portfolio_value"
+
++                        ),
+
+                         "train/cash_after": state_after.get("cash"),
+
+                         "train/finrl_cost": decision_record.get("finrl_cost"),
+
+                         "train/finrl_trades": decision_record.get("finrl_trades"),
+
+@@ -2073,22 +2164,25 @@
+             state = next_state
+
+ 
+
+             if step % eval_interval == 0 or step == total_steps:
+
+-                eval_summary, distribution_rows, _asset_memory, step_rows = evaluate_iqn_agent(
+
+-                    agent=agent,
+
+-                    tickers=tickers,
+
+-                    trade_data=split_result.trade_data,
+
+-                    step=step,
+
+-                    initial_amount=initial_amount,
+
+-                    hmax=hmax,
+
+-                    buy_cost_pct=buy_cost_pct,
+
+-                    sell_cost_pct=sell_cost_pct,
+
+-                    reward_scaling=reward_scaling,
+
+-                    risk_profile=risk_profile,
+
+-                    score_mode=score_mode,
+
+-                    risk_lambda=risk_lambda,
+
+-                    num_quantiles=num_quantiles,
+
+-                    max_eval_steps=max_eval_steps,
+
+-                    disable_change_strategy=disable_change_strategy,
+
++                eval_summary, distribution_rows, _asset_memory, step_rows = (
+
++                    evaluate_iqn_agent(
+
++                        agent=agent,
+
++                        tickers=tickers,
+
++                        trade_data=split_result.trade_data,
+
++                        step=step,
+
++                        initial_amount=initial_amount,
+
++                        hmax=hmax,
+
++                        buy_cost_pct=buy_cost_pct,
+
++                        sell_cost_pct=sell_cost_pct,
+
++                        reward_scaling=reward_scaling,
+
++                        risk_profile=risk_profile,
+
++                        score_mode=score_mode,
+
++                        risk_lambda=risk_lambda,
+
++                        num_quantiles=num_quantiles,
+
++                        max_eval_steps=max_eval_steps,
+
++                        disable_change_strategy=disable_change_strategy,
+
++                        state_norm_scale=iqn_config.state_norm_scale,
+
++                    )
+
+                 )
+
+                 eval_records.append(eval_summary)
+
+                 eval_distribution_rows.extend(distribution_rows)
+
+@@ -2465,26 +2559,52 @@
+                         "loss_min": min(losses) if losses else None,
+
+                         "loss_max": max(losses) if losses else None,
+
+                         "loss_mean": float(np.mean(losses)) if losses else None,
+
+-                        "final_eval/final_value": final_eval_for_wandb.get("final_value"),
+
+-                        "final_eval/total_return_pct": final_eval_for_wandb.get("total_return_pct"),
+
+-                        "final_eval/annualized_sharpe": final_eval_for_wandb.get("annualized_sharpe"),
+
+-                        "final_eval/max_drawdown_pct": final_eval_for_wandb.get("max_drawdown_pct"),
+
++                        "final_eval/final_value": final_eval_for_wandb.get(
+
++                            "final_value"
+
++                        ),
+
++                        "final_eval/total_return_pct": final_eval_for_wandb.get(
+
++                            "total_return_pct"
+
++                        ),
+
++                        "final_eval/annualized_sharpe": final_eval_for_wandb.get(
+
++                            "annualized_sharpe"
+
++                        ),
+
++                        "final_eval/max_drawdown_pct": final_eval_for_wandb.get(
+
++                            "max_drawdown_pct"
+
++                        ),
+
+                         "final_eval/cvar_pct": final_eval_for_wandb.get("cvar_pct"),
+
+-                        "final_eval/action_counts": final_eval_for_wandb.get("action_counts"),
+
++                        "final_eval/action_counts": final_eval_for_wandb.get(
+
++                            "action_counts"
+
++                        ),
+
+                         "experiment/train_window": f"{experiment_context.get('train_window_start')}_to_{experiment_context.get('train_window_end')}",
+
+                         "experiment/eval_window": f"{experiment_context.get('eval_window_start')}_to_{experiment_context.get('eval_window_end')}",
+
+-                        "experiment/market_data_start": experiment_context.get("market_data_start"),
+
+-                        "experiment/market_data_end": experiment_context.get("market_data_end"),
+
++                        "experiment/market_data_start": experiment_context.get(
+
++                            "market_data_start"
+
++                        ),
+
++                        "experiment/market_data_end": experiment_context.get(
+
++                            "market_data_end"
+
++                        ),
+
+                         "experiment/pit_cutoff": experiment_context.get("pit_cutoff"),
+
+                         "result/profit_loss": experiment_context.get("profit_loss"),
+
+-                        "result/total_return_pct": experiment_context.get("total_return_pct"),
+
++                        "result/total_return_pct": experiment_context.get(
+
++                            "total_return_pct"
+
++                        ),
+
+                         "result/made_money": experiment_context.get("made_money"),
+
+-                        "data/final_source_used": data_provenance.get("final_source_used"),
+
+-                        "data/download_attempted": data_provenance.get("download_attempted"),
+
+-                        "data/download_success": data_provenance.get("download_success"),
+
++                        "data/final_source_used": data_provenance.get(
+
++                            "final_source_used"
+
++                        ),
+
++                        "data/download_attempted": data_provenance.get(
+
++                            "download_attempted"
+
++                        ),
+
++                        "data/download_success": data_provenance.get(
+
++                            "download_success"
+
++                        ),
+
+                         "data/cache_used": data_provenance.get("cache_used"),
+
+-                        "data/import_file_used": data_provenance.get("import_file_used"),
+
+-                        "data/failed_ticker_count": len(data_provenance.get("failed_tickers") or []),
+
++                        "data/import_file_used": data_provenance.get(
+
++                            "import_file_used"
+
++                        ),
+
++                        "data/failed_ticker_count": len(
+
++                            data_provenance.get("failed_tickers") or []
+
++                        ),
+
+                     }
+
+                 )
+
+             except Exception:
+
+@@ -2560,17 +2680,23 @@
+                             description="Experiment context and data provenance written after a failed StockDSS run.",
+
+                         )
+
+                         for path in [
+
+-                            run_paths.summary_directory / "experiment_context_summary.md",
+
+-                            run_paths.summary_directory / "experiment_context_summary.json",
+
+-                            run_paths.summary_directory / "experiment_failure_summary.md",
+
+-                            run_paths.summary_directory / "experiment_failure_summary.json",
+
++                            run_paths.summary_directory
+
++                            / "experiment_context_summary.md",
+
++                            run_paths.summary_directory
+
++                            / "experiment_context_summary.json",
+
++                            run_paths.summary_directory
+
++                            / "experiment_failure_summary.md",
+
++                            run_paths.summary_directory
+
++                            / "experiment_failure_summary.json",
+
+                             run_paths.data_directory / "data_provenance_summary.json",
+
+                         ]:
+
+                             if path.exists():
+
+                                 failure_artifact.add_file(str(path), name=path.name)
+
+                         wandb_run.log_artifact(failure_artifact)
+
+                     except Exception:
+
+-                        run_logger.exception("Failed to log W&B failure provenance artifact.")
+
++                        run_logger.exception(
+
++                            "Failed to log W&B failure provenance artifact."
+
++                        )
+
+             except Exception:
+
+                 pass
+
+ 
