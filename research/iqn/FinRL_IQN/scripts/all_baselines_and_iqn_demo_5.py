@@ -242,12 +242,12 @@ def run_finrl_baselines(repo_root: Path) -> tuple[int, Optional[Path]]:
             "STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME": PIT_POINT_IN_TIME,
             "STOCK_INVESTMENT_DSS_PIT_TRADE_END_DATE": PIT_TRADE_END_DATE,
             # FinRL micro config
-            "STOCK_INVESTMENT_DSS_FINRL_BASELINE_AGENTS": "a2c,ppo",
+            "STOCK_INVESTMENT_DSS_FINRL_BASELINE_AGENTS": "a2c,ppo,ddpg,sac,td3",
             "STOCK_INVESTMENT_DSS_FINRL_BASELINE_INCLUDE_MVO": "true",
             "STOCK_INVESTMENT_DSS_FINRL_BASELINE_TOTAL_TIMESTEPS": "5000",
             "STOCK_INVESTMENT_DSS_FINRL_BASELINE_DEVICE": "auto",
             # Multiseed: 2 seeds for bug-bash micro validation (production: 3)
-            "STOCK_INVESTMENT_DSS_FINRL_MULTI_SEED_LIST": "1,2",
+            "STOCK_INVESTMENT_DSS_FINRL_MULTI_SEED_LIST": "1,2,3,4,5,6,7,8,9,10",
             "STOCK_INVESTMENT_DSS_FINRL_MULTI_SEED_STOP_ON_FAILURE": "false",
             "STOCK_INVESTMENT_DSS_FINRL_MULTI_SEED_RUN_SUMMARY_AFTER": "true",
             # FinRL env parameters
@@ -326,7 +326,7 @@ def run_iqn_micro_multiseed(repo_root: Path) -> tuple[int, Optional[Path]]:
             "STOCK_INVESTMENT_DSS_IQN_DISABLE_CHANGE_STRATEGY": "true",
             "STOCK_INVESTMENT_DSS_IQN_DEVICE": "auto",
             # Multiseed: 2 seeds for bug-bash micro validation (production: 3)
-            "STOCK_INVESTMENT_DSS_IQN_MULTI_SEED_LIST": "1,2",
+            "STOCK_INVESTMENT_DSS_IQN_MULTI_SEED_LIST": "1,2,3,4,5,6,7,8,9,10",
             "STOCK_INVESTMENT_DSS_IQN_MULTI_SEED_STOP_ON_FAILURE": "false",
             "STOCK_INVESTMENT_DSS_IQN_MULTI_SEED_RUN_SUMMARY_AFTER": "true",
         }
