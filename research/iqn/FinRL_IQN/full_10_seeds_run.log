@@ -1,0 +1,46 @@
+==============================================================================
+Traceback (most recent call last):
+ALL-BASELINES-AND-IQN MICRO ù three-layer pipeline validation
+==============================================================================
+
+This is NOT thesis evidence. It validates the full comparison stack
+(algorithmic + FinRL + IQN) end-to-end in roughly 15-20 minutes.
+
+Repo root:    C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN
+Python:       C:\Users\gurug\miniconda3\envs\stockdss\python.exe
+Start time:   2026-05-26 04:40:46
+
+Shared configuration:
+  Dataset ID: demo_10_new_micro
+  Tickers:    COST,AVGO,LLY,ORCL,CAT
+  PIT split:  2024-01-01 -> 2026-12-31
+
+Per-layer configuration:
+  Algorithmic: all single-ticker + portfolio baselines (~30-60 sec)
+               rule-based, no training steps (see layer 1 note)
+  FinRL:       2 seeds Î 5000 steps Î a2c+ppo+mvo (~6-8 min)
+  IQN:         2 seeds Î 5000 steps Î learning_starts=2000 (~4-7 min)
+
+Failure policy: each layer runs independently, status reported at end.
+
+
+==============================================================================
+LAYER 1 / 3 ù ALGORITHMIC TRADING BASELINES
+==============================================================================
+
+Note on training budget:
+  Algorithmic baselines are rule-based (SMA, RSI, Bollinger, MACD,
+  momentum, breakout, volatility filter, etc.) ù no weights to learn,
+  no gradient updates. They perform a single deterministic pass over
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\scripts\all_baselines_and_iqn_demo_5.py", line 752, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\scripts\all_baselines_and_iqn_demo_5.py", line 402, in main
+    algo_rc, algo_path = run_algorithmic_baselines(repo_root)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\scripts\all_baselines_and_iqn_demo_5.py", line 166, in run_algorithmic_baselines
+    print("  the PIT trade window (2024-01-01 \u2192 2026-12-31) using only data")
+  File "C:\Users\gurug\miniconda3\envs\stockdss\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 35: character maps to <undefined>

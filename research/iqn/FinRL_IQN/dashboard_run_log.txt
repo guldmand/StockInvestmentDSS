@@ -1,0 +1,280 @@
+
+====================================================================================================
+Summary Dashboard ù auto-discovering input runs
+====================================================================================================
+Algorithmic run : 2026_05_25_231708_d_iqn_dss_algorithmic_baseline_grid_demo_10_new_micro
+FinRL run       : 2026_05_25_231849_d_iqn_dss_finrl_baseline_multiseed_summary
+IQN run         : 2026_05_25_232005_d_iqn_dss_iqn_learning_curve_multiseed_summary
+
+====================================================================================================
+StockDSS result comparison
+====================================================================================================
+ rank                        strategy                       source    end_value  profit_loss  total_return_pct  max_drawdown_pct  annualized_sharpe
+    1               AVGO_buy_and_hold Algorithmic Trading / non-RL 3904763.0916 2904763.0916          290.4763          -41.1497             1.3643
+    2        ORCL_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 3673168.1209 2673168.1209          267.3168          -25.1918             1.6190
+    3                             A2C             FinRL / baseline 3526106.1089 2526106.1089          252.6106          -37.5948             1.5315
+    4                CAT_buy_and_hold Algorithmic Trading / non-RL 3154544.4336 2154544.4336          215.4544          -34.0471             1.7008
+    5        AVGO_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 3109466.8853 2109466.8853          210.9467          -37.9172             1.5619
+    6                 CAT_breakout_55 Algorithmic Trading / non-RL 2902232.4469 1902232.4469          190.2232          -15.2647             1.8490
+    7                AVGO_breakout_55 Algorithmic Trading / non-RL 2826094.7514 1826094.7514          182.6095          -28.0996             1.1767
+    8                   CAT_sma_20_50 Algorithmic Trading / non-RL 2792385.3850 1792385.3850          179.2385          -17.8144             1.7890
+    9                  CAT_sma_50_200 Algorithmic Trading / non-RL 2619385.5293 1619385.5293          161.9386          -21.3328             1.5606
+   10                 AVGO_sma_50_200 Algorithmic Trading / non-RL 2552023.2961 1552023.2961          155.2023          -41.1497             1.0240
+   11                 CAT_momentum_60 Algorithmic Trading / non-RL 2535603.9791 1535603.9791          153.5604          -25.9690             1.5730
+   12                   CAT_ema_12_26 Algorithmic Trading / non-RL 2501587.0860 1501587.0860          150.1587          -29.4653             1.5787
+   13     ORCL_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 2421417.0937 1421417.0937          142.1417          -13.7268             1.3606
+   14                   CAT_ema_20_50 Algorithmic Trading / non-RL 2395295.3132 1395295.3132          139.5295          -30.0656             1.4723
+   15                WMT_buy_and_hold Algorithmic Trading / non-RL 2315846.6978 1315846.6978          131.5847          -21.9280             1.6645
+   16                  WMT_sma_50_200 Algorithmic Trading / non-RL 2313530.8511 1313530.8511          131.3531          -21.9280             1.6627
+   17                    CAT_ema_5_20 Algorithmic Trading / non-RL 2278336.5624 1278336.5624          127.8337          -22.8940             1.4876
+   18                             MVO             FinRL / baseline 2266925.6102 1266925.6102          126.6926          -22.3071             1.5161
+   19                 CAT_momentum_10 Algorithmic Trading / non-RL 2243560.9570 1243560.9570          124.3561          -24.7459             1.5746
+   20                 CAT_breakout_10 Algorithmic Trading / non-RL 2191612.8607 1191612.8607          119.1613          -19.4369             1.4632
+   21                AVGO_momentum_60 Algorithmic Trading / non-RL 2145562.5620 1145562.5620          114.5563          -31.6679             0.9253
+   22                CAT_macd_12_26_9 Algorithmic Trading / non-RL 2128777.6084 1128777.6084          112.8778          -24.2116             1.5204
+   23                  AVGO_ema_20_50 Algorithmic Trading / non-RL 2119141.1274 1119141.1274          111.9141          -39.2362             0.9301
+   24                  AVGO_ema_12_26 Algorithmic Trading / non-RL 2110305.1197 1110305.1197          111.0305          -33.4237             0.9699
+   25                ORCL_breakout_10 Algorithmic Trading / non-RL 2109741.9736 1109741.9736          110.9742          -39.8811             0.9818
+   26                 CAT_momentum_20 Algorithmic Trading / non-RL 2099761.0058 1099761.0058          109.9761          -32.3777             1.3449
+   27                  ORCL_ema_20_50 Algorithmic Trading / non-RL 2082197.7872 1082197.7872          108.2198          -33.8679             0.9714
+   28                ORCL_macd_8_21_9 Algorithmic Trading / non-RL 2073708.0306 1073708.0306          107.3708          -37.3135             0.9513
+   29      CAT_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 2050106.1750 1050106.1750          105.0106          -32.2949             1.3892
+   30                ORCL_breakout_55 Algorithmic Trading / non-RL 2040642.9714 1040642.9714          104.0643          -40.0496             0.9544
+   31                       D-IQN-DSS                    D-IQN-DSS 2034915.6928 1034915.6928          103.4916          -17.6093             1.6650
+   32                   WMT_ema_20_50 Algorithmic Trading / non-RL 2023816.8800 1023816.8800          102.3817          -20.2089             1.5277
+   33                 WMT_momentum_60 Algorithmic Trading / non-RL 2023156.7662 1023156.7662          102.3157          -14.6467             1.5554
+   34      CAT_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 1991483.3874  991483.3874           99.1483          -24.7459             1.4484
+   35                   CAT_sma_10_30 Algorithmic Trading / non-RL 1948667.0942  948667.0942           94.8667          -32.2266             1.2438
+   36                    CAT_sma_5_20 Algorithmic Trading / non-RL 1942426.5647  942426.5647           94.2427          -25.7607             1.2463
+   37       equal_weight_buy_and_hold Algorithmic Trading / non-RL 1907960.6362  907960.6362           90.7961          -19.0329             1.6491
+   38               ORCL_buy_and_hold Algorithmic Trading / non-RL 1907012.9352  907012.9352           90.7013          -58.2499             0.7799
+   39                 WMT_breakout_55 Algorithmic Trading / non-RL 1899319.4095  899319.4095           89.9319          -21.1847             1.4229
+   40                  AVGO_sma_20_50 Algorithmic Trading / non-RL 1897432.0163  897432.0163           89.7432          -34.1679             0.8963
+   41                 WMT_momentum_10 Algorithmic Trading / non-RL 1897026.5493  897026.5493           89.7027          -11.3406             1.5804
+   42                 CAT_breakout_20 Algorithmic Trading / non-RL 1886705.5223  886705.5223           88.6706          -31.9205             1.1856
+   43                  CAT_momentum_5 Algorithmic Trading / non-RL 1885025.8299  885025.8299           88.5026          -20.7771             1.2579
+   44 naive_one_over_n_rebalanced_21d Algorithmic Trading / non-RL 1869584.5579  869584.5579           86.9585          -17.5013             1.7820
+   45                  ORCL_sma_10_30 Algorithmic Trading / non-RL 1864988.9058  864988.9058           86.4989          -32.0863             1.0432
+   46       CAT_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL 1857385.4957  857385.4957           85.7385          -16.3656             1.3371
+   47                 CAT_macd_8_21_9 Algorithmic Trading / non-RL 1833292.8514  833292.8514           83.3293          -16.3432             1.3261
+   48                LLY_buy_and_hold Algorithmic Trading / non-RL 1831232.1118  831232.1118           83.1232          -34.4750             0.8777
+   49                             PPO             FinRL / baseline 1829814.1451  829814.1451           82.9814          -34.4502             0.8770
+   50                ORCL_momentum_10 Algorithmic Trading / non-RL 1811028.9588  811028.9588           81.1029          -35.8731             0.8230
+   51                  ORCL_ema_12_26 Algorithmic Trading / non-RL 1778700.7649  778700.7649           77.8701          -25.7715             0.9201
+   52                AVGO_breakout_20 Algorithmic Trading / non-RL 1767801.7850  767801.7850           76.7802          -37.0162             0.8089
+   53                AVGO_momentum_20 Algorithmic Trading / non-RL 1765481.7229  765481.7229           76.5482          -30.8972             0.7987
+   54                   ORCL_ema_5_20 Algorithmic Trading / non-RL 1759565.8741  759565.8741           75.9566          -34.5209             0.9096
+   55         LLY_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1721462.7449  721462.7449           72.1463          -25.2524             0.9169
+   56                 WMT_breakout_20 Algorithmic Trading / non-RL 1712067.9043  712067.9043           71.2068          -12.9099             1.2968
+   57      WMT_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 1711168.1313  711168.1313           71.1168          -14.5966             1.3691
+   58                 LLY_macd_8_21_9 Algorithmic Trading / non-RL 1700043.0739  700043.0739           70.0043          -27.7112             1.0595
+   59                   ORCL_sma_5_20 Algorithmic Trading / non-RL 1696523.6731  696523.6731           69.6524          -43.1819             0.8404
+   60         CAT_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1681939.0208  681939.0208           68.1939          -18.1980             1.3679
+   61                   AVGO_ema_5_20 Algorithmic Trading / non-RL 1678937.9425  678937.9425           67.8938          -33.7714             0.7486
+   62                 WMT_breakout_10 Algorithmic Trading / non-RL 1665706.5007  665706.5007           66.5707          -14.5206             1.2835
+   63                ORCL_breakout_20 Algorithmic Trading / non-RL 1643224.6389  643224.6389           64.3225          -42.8601             0.8089
+   64           LLY_bollinger_mr_20_2 Algorithmic Trading / non-RL 1640949.2670  640949.2670           64.0949          -24.0842             0.8097
+   65                    WMT_ema_5_20 Algorithmic Trading / non-RL 1625508.8559  625508.8559           62.5509          -14.6840             1.2012
+   66                   WMT_ema_12_26 Algorithmic Trading / non-RL 1618783.6194  618783.6194           61.8784          -15.2113             1.1406
+   67               COST_buy_and_hold Algorithmic Trading / non-RL 1601981.8718  601981.8718           60.1982          -20.7425             1.0770
+   68                 ORCL_momentum_5 Algorithmic Trading / non-RL 1589324.1926  589324.1926           58.9324          -29.7257             0.6806
+   69                 COST_sma_50_200 Algorithmic Trading / non-RL 1573455.6933  573455.6933           57.3456          -17.2947             1.1387
+   70          ORCL_bollinger_mr_20_2 Algorithmic Trading / non-RL 1552493.7058  552493.7058           55.2494          -47.8920             0.6483
+   71                  LLY_sma_50_200 Algorithmic Trading / non-RL 1546950.6470  546950.6470           54.6951          -24.2131             0.8261
+   72                   WMT_sma_20_50 Algorithmic Trading / non-RL 1540022.1261  540022.1261           54.0022          -23.0274             1.0628
+   73                 LLY_breakout_55 Algorithmic Trading / non-RL 1533203.4861  533203.4861           53.3203          -26.7361             0.8431
+   74          AVGO_bollinger_mr_20_2 Algorithmic Trading / non-RL 1528340.4436  528340.4436           52.8340          -37.9172             0.7100
+   75           CAT_bollinger_mr_20_2 Algorithmic Trading / non-RL 1511166.3016  511166.3016           51.1166          -21.7984             1.0636
+   76     ORCL_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1507226.0344  507226.0344           50.7226          -15.4346             0.9228
+   77                ORCL_momentum_60 Algorithmic Trading / non-RL 1500885.4432  500885.4432           50.0885          -31.7696             0.6276
+   78                LLY_rsi_14_30_70 Algorithmic Trading / non-RL 1500637.3014  500637.3014           50.0637          -30.2595             0.7358
+   79                   COST_sma_5_20 Algorithmic Trading / non-RL 1479241.8170  479241.8170           47.9242          -18.6562             1.0719
+   80                LLY_macd_12_26_9 Algorithmic Trading / non-RL 1477759.6406  477759.6406           47.7760          -21.2258             0.8805
+   81                  COST_ema_20_50 Algorithmic Trading / non-RL 1473015.1721  473015.1721           47.3015          -17.2947             1.0451
+   82                   WMT_sma_10_30 Algorithmic Trading / non-RL 1469836.3584  469836.3584           46.9836          -13.6202             0.9893
+   83                ORCL_momentum_20 Algorithmic Trading / non-RL 1468390.7018  468390.7018           46.8391          -44.3853             0.6736
+   84                 WMT_momentum_20 Algorithmic Trading / non-RL 1458816.2985  458816.2985           45.8816          -16.8778             0.9765
+   85                 KO_buy_and_hold Algorithmic Trading / non-RL 1452357.9679  452357.9679           45.2358          -15.5030             1.0818
+   86                COST_momentum_20 Algorithmic Trading / non-RL 1450206.4995  450206.4995           45.0206          -12.3587             1.1049
+   87     COST_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1450206.4995  450206.4995           45.0206          -12.3587             1.1049
+   88               AVGO_rsi_14_30_70 Algorithmic Trading / non-RL 1435785.9382  435785.9382           43.5786          -10.2295             1.0026
+   89                    WMT_sma_5_20 Algorithmic Trading / non-RL 1433106.5105  433106.5105           43.3107          -26.2238             0.9286
+   90               ORCL_macd_12_26_9 Algorithmic Trading / non-RL 1415714.9129  415714.9129           41.5715          -44.6293             0.6078
+   91                COST_breakout_20 Algorithmic Trading / non-RL 1402596.3641  402596.3641           40.2596          -13.6669             0.9966
+   92                AVGO_momentum_10 Algorithmic Trading / non-RL 1389997.4205  389997.4205           38.9997          -41.8183             0.5458
+   93                COST_breakout_55 Algorithmic Trading / non-RL 1384498.7265  384498.7265           38.4499          -24.1261             0.9006
+   94            BA_bollinger_mr_20_2 Algorithmic Trading / non-RL 1382711.3367  382711.3367           38.2711          -28.4117             0.6027
+   95                COST_momentum_10 Algorithmic Trading / non-RL 1379234.4167  379234.4167           37.9234          -12.3955             0.9430
+   96     COST_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 1379234.4167  379234.4167           37.9234          -12.3955             0.9430
+   97                AVGO_breakout_10 Algorithmic Trading / non-RL 1377086.9978  377086.9978           37.7087          -41.6672             0.5380
+   98                WMT_macd_12_26_9 Algorithmic Trading / non-RL 1372274.2589  372274.2589           37.2274          -12.5624             0.9014
+   99                  ORCL_sma_20_50 Algorithmic Trading / non-RL 1357880.3319  357880.3319           35.7880          -36.1014             0.5671
+  100                COST_momentum_60 Algorithmic Trading / non-RL 1352795.0561  352795.0561           35.2795          -23.8519             0.8181
+  101                CAT_rsi_14_25_75 Algorithmic Trading / non-RL 1339136.8655  339136.8655           33.9137           -5.0062             1.2287
+  102                  BA_macd_8_21_9 Algorithmic Trading / non-RL 1329052.9665  329052.9665           32.9053          -36.1399             0.6352
+  103                   AVGO_sma_5_20 Algorithmic Trading / non-RL 1323652.0440  323652.0440           32.3652          -38.0372             0.4934
+  104                 BA_rsi_14_30_70 Algorithmic Trading / non-RL 1323399.8471  323399.8471           32.3400          -35.7548             0.5417
+  105         WMT_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1320965.9766  320965.9766           32.0966          -10.6706             1.0881
+  106           WMT_bollinger_mr_20_2 Algorithmic Trading / non-RL 1320163.6822  320163.6822           32.0164          -16.8293             0.9237
+  107                 AVGO_momentum_5 Algorithmic Trading / non-RL 1318672.0299  318672.0299           31.8672          -37.8771             0.4913
+  108      WMT_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1315890.8926  315890.8926           31.5891          -25.0216             0.7487
+  109                   LLY_sma_10_30 Algorithmic Trading / non-RL 1314720.3278  314720.3278           31.4720          -43.8168             0.6233
+  110                  KO_momentum_60 Algorithmic Trading / non-RL 1309341.3923  309341.3923           30.9341          -14.1906             0.9169
+  111          COST_bollinger_mr_20_2 Algorithmic Trading / non-RL 1291946.0193  291946.0193           29.1946          -10.8679             0.9505
+  112                 WMT_macd_8_21_9 Algorithmic Trading / non-RL 1291625.8975  291625.8975           29.1626          -14.4255             0.7743
+  113                   COST_ema_5_20 Algorithmic Trading / non-RL 1288580.3157  288580.3157           28.8580          -23.0605             0.7167
+  114                   LLY_ema_12_26 Algorithmic Trading / non-RL 1288230.6561  288230.6561           28.8231          -43.6413             0.5784
+  115       LLY_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL 1281103.9698  281103.9698           28.1104          -26.4464             0.6157
+  116                    KO_sma_20_50 Algorithmic Trading / non-RL 1269022.8562  269022.8562           26.9023          -11.1543             0.8809
+  117                    KO_sma_10_30 Algorithmic Trading / non-RL 1267948.0535  267948.0535           26.7948          -11.9235             0.8846
+  118                  COST_sma_10_30 Algorithmic Trading / non-RL 1264040.3671  264040.3671           26.4040          -20.1116             0.6992
+  119                COST_breakout_10 Algorithmic Trading / non-RL 1243939.4782  243939.4782           24.3939          -15.9865             0.6773
+  120                  LLY_momentum_5 Algorithmic Trading / non-RL 1239479.4787  239479.4787           23.9479          -31.8960             0.4970
+  121       WMT_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL 1234665.2787  234665.2787           23.4665          -18.8511             0.6299
+  122          PG_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1231346.1051  231346.1051           23.1346          -20.1020             0.6213
+  123                  KO_breakout_55 Algorithmic Trading / non-RL 1231032.1720  231032.1720           23.1032          -11.6189             0.7253
+  124                   BA_momentum_5 Algorithmic Trading / non-RL 1228983.4214  228983.4214           22.8983          -37.5830             0.4936
+  125                   LLY_sma_20_50 Algorithmic Trading / non-RL 1225665.0326  225665.0326           22.5665          -41.3772             0.4715
+  126                  WMT_momentum_5 Algorithmic Trading / non-RL 1220502.0969  220502.0969           22.0502          -19.7820             0.5883
+  127                   KO_sma_50_200 Algorithmic Trading / non-RL 1219074.9412  219074.9412           21.9075          -18.9429             0.6842
+  128      LLY_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1219051.2237  219051.2237           21.9051          -24.7490             0.5148
+  129               AVGO_macd_12_26_9 Algorithmic Trading / non-RL 1218406.8800  218406.8800           21.8407          -35.4596             0.4071
+  130                WMT_rsi_14_30_70 Algorithmic Trading / non-RL 1216970.6093  216970.6093           21.6971           -8.8792             0.8202
+  131                    KO_ema_20_50 Algorithmic Trading / non-RL 1203628.3848  203628.3848           20.3628          -13.6356             0.6596
+  132                 LLY_momentum_10 Algorithmic Trading / non-RL 1203327.2143  203327.2143           20.3327          -30.2743             0.4570
+  133                    KO_ema_12_26 Algorithmic Trading / non-RL 1198748.9838  198748.9838           19.8749          -14.1896             0.6673
+  134                    LLY_sma_5_20 Algorithmic Trading / non-RL 1198119.5698  198119.5698           19.8120          -33.7361             0.4511
+  135                MCD_rsi_14_25_75 Algorithmic Trading / non-RL 1197595.1977  197595.1977           19.7595          -19.0365             0.6698
+  136                  KO_macd_8_21_9 Algorithmic Trading / non-RL 1189400.8995  189400.8995           18.9401          -17.6283             0.6746
+  137                 PG_rsi_14_30_70 Algorithmic Trading / non-RL 1184907.8983  184907.8983           18.4908          -20.1020             0.5675
+  138      ORCL_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL 1182459.4877  182459.4877           18.2459          -29.8627             0.4153
+  139       KO_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 1175624.3613  175624.3613           17.5624          -12.7984             0.6337
+  140                  KO_momentum_10 Algorithmic Trading / non-RL 1175624.3613  175624.3613           17.5624          -12.7984             0.6337
+  141                  COST_ema_12_26 Algorithmic Trading / non-RL 1173631.8978  173631.8978           17.3632          -18.5871             0.4950
+  142                    LLY_ema_5_20 Algorithmic Trading / non-RL 1165245.3707  165245.3707           16.5245          -33.9340             0.3896
+  143                CAT_rsi_14_30_70 Algorithmic Trading / non-RL 1163037.0407  163037.0407           16.3037          -21.7984             0.5319
+  144                LLY_rsi_14_25_75 Algorithmic Trading / non-RL 1154917.4427  154917.4427           15.4917          -32.5676             0.3618
+  145            PG_bollinger_mr_20_2 Algorithmic Trading / non-RL 1154443.7457  154443.7457           15.4444          -18.7467             0.4743
+  146                     KO_ema_5_20 Algorithmic Trading / non-RL 1151392.7567  151392.7567           15.1393          -13.9130             0.5447
+  147        KO_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL 1148165.7136  148165.7136           14.8166          -18.6618             0.5634
+  148                   KO_momentum_5 Algorithmic Trading / non-RL 1148165.7136  148165.7136           14.8166          -18.6618             0.5634
+  149                  AVGO_sma_10_30 Algorithmic Trading / non-RL 1144133.2149  144133.2149           14.4133          -35.1018             0.3375
+  150          KO_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1137708.7820  137708.7820           13.7709          -13.1767             0.5563
+  151                 PG_rsi_14_25_75 Algorithmic Trading / non-RL 1128614.4908  128614.4908           12.8614          -21.1536             0.3967
+  152                 KO_macd_12_26_9 Algorithmic Trading / non-RL 1125017.3246  125017.3246           12.5017          -15.6587             0.4861
+  153                     KO_sma_5_20 Algorithmic Trading / non-RL 1102497.8010  102497.8010           10.2498          -13.4839             0.3967
+  154       KO_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1099476.4651   99476.4651            9.9476          -17.2039             0.3910
+  155                  KO_momentum_20 Algorithmic Trading / non-RL 1099476.4651   99476.4651            9.9476          -17.2039             0.3910
+  156                AVGO_macd_8_21_9 Algorithmic Trading / non-RL 1098378.3958   98378.3958            9.8378          -39.9580             0.2876
+  157                  KO_breakout_20 Algorithmic Trading / non-RL 1098376.2697   98376.2697            9.8376          -20.1446             0.3859
+  158      LLY_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL 1097381.0457   97381.0457            9.7381          -21.7494             0.3090
+  159            KO_bollinger_mr_20_2 Algorithmic Trading / non-RL 1096619.1585   96619.1585            9.6619          -13.9932             0.4490
+  160                 BA_rsi_14_25_75 Algorithmic Trading / non-RL 1092373.2874   92373.2874            9.2373          -35.7548             0.2775
+  161                 LLY_breakout_10 Algorithmic Trading / non-RL 1085780.9783   85780.9783            8.5781          -36.4672             0.2658
+  162                  KO_breakout_10 Algorithmic Trading / non-RL 1080236.7192   80236.7192            8.0237          -19.3612             0.3331
+  163                 LLY_momentum_60 Algorithmic Trading / non-RL 1076148.8323   76148.8323            7.6149          -44.5169             0.2515
+  164                COST_macd_8_21_9 Algorithmic Trading / non-RL 1071600.8866   71600.8866            7.1601          -19.8970             0.2678
+  165                   LLY_ema_20_50 Algorithmic Trading / non-RL 1067042.9100   67042.9100            6.7043          -49.2569             0.2351
+  166               COST_macd_12_26_9 Algorithmic Trading / non-RL 1064868.6277   64868.6277            6.4869          -22.9008             0.2505
+  167                MCD_rsi_14_30_70 Algorithmic Trading / non-RL 1063371.6513   63371.6513            6.3372          -11.9025             0.2760
+  168               COST_rsi_14_30_70 Algorithmic Trading / non-RL 1061143.8280   61143.8280            6.1144          -19.3469             0.2655
+  169                  BA_momentum_10 Algorithmic Trading / non-RL 1060106.1722   60106.1722            6.0106          -32.8044             0.2220
+  170        COST_bollinger_mr_20_2.5 Algorithmic Trading / non-RL 1054497.0114   54497.0114            5.4497          -14.4150             0.2469
+  171                 KO_rsi_14_25_75 Algorithmic Trading / non-RL 1053891.3645   53891.3645            5.3891           -7.0521             0.3850
+  172                   MCD_sma_10_30 Algorithmic Trading / non-RL 1040404.1307   40404.1307            4.0404          -13.9837             0.1879
+  173                 PG_buy_and_hold Algorithmic Trading / non-RL 1035965.0798   35965.0798            3.5965          -21.1536             0.1725
+  174                 KO_rsi_14_30_70 Algorithmic Trading / non-RL 1015784.8969   15784.8969            1.5785           -8.5330             0.1363
+  175     AVGO_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL 1013991.8743   13991.8743            1.3992          -34.3206             0.1489
+  176                 MCD_breakout_20 Algorithmic Trading / non-RL 1012980.1782   12980.1782            1.2980          -16.6833             0.1058
+  177                 LLY_breakout_20 Algorithmic Trading / non-RL 1012855.1985   12855.1985            1.2855          -48.3999             0.1371
+  178                MCD_buy_and_hold Algorithmic Trading / non-RL  999849.5926    -150.4074           -0.0150          -19.0365             0.0897
+  179                 ORCL_sma_50_200 Algorithmic Trading / non-RL  987803.0680  -12196.9320           -1.2197          -45.8272             0.1802
+  180          BA_bollinger_mr_20_2.5 Algorithmic Trading / non-RL  984598.6958  -15401.3042           -1.5401          -45.7459             0.1556
+  181           MCD_bollinger_mr_20_2 Algorithmic Trading / non-RL  983969.7203  -16030.2797           -1.6030          -16.4320             0.0159
+  182      COST_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL  980434.4202  -19565.5798           -1.9566          -24.2598             0.0252
+  183               ORCL_rsi_14_25_75 Algorithmic Trading / non-RL  975663.8555  -24336.1445           -2.4336          -38.6392             0.0809
+  184                 COST_momentum_5 Algorithmic Trading / non-RL  968926.0645  -31073.9355           -3.1074          -25.0712            -0.0031
+  185                   MCD_ema_12_26 Algorithmic Trading / non-RL  967406.5082  -32593.4918           -3.2593          -11.5585            -0.0304
+  186                 LLY_momentum_20 Algorithmic Trading / non-RL  966339.2174  -33660.7826           -3.3661          -37.4131             0.0594
+  187         MCD_bollinger_mr_20_2.5 Algorithmic Trading / non-RL  965402.0944  -34597.9056           -3.4598          -13.2025            -0.0938
+  188                    MCD_sma_5_20 Algorithmic Trading / non-RL  963938.4937  -36061.5063           -3.6062          -19.6071            -0.0422
+  189                   MCD_sma_20_50 Algorithmic Trading / non-RL  947774.6710  -52225.3290           -5.2225          -14.6072            -0.1002
+  190                    PG_sma_10_30 Algorithmic Trading / non-RL  941660.6902  -58339.3098           -5.8339          -16.2346            -0.1479
+  191                 MCD_breakout_55 Algorithmic Trading / non-RL  940016.3035  -59983.6965           -5.9984          -18.0516            -0.1062
+  192                  COST_sma_20_50 Algorithmic Trading / non-RL  938185.5633  -61814.4367           -6.1814          -28.0112            -0.0900
+  193        BA_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL  933157.9600  -66842.0400           -6.6842          -39.5886            -0.0408
+  194                   PG_sma_50_200 Algorithmic Trading / non-RL  931956.2649  -68043.7351           -6.8044          -21.1231            -0.1556
+  195     AVGO_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL  918849.5499  -81150.4501           -8.1150          -32.1490            -0.0196
+  196               ORCL_rsi_14_30_70 Algorithmic Trading / non-RL  914232.4958  -85767.5042           -8.5768          -47.4579             0.0381
+  197                   MCD_ema_20_50 Algorithmic Trading / non-RL  912949.1674  -87050.8326           -8.7051          -18.5631            -0.2067
+  198                    MCD_ema_5_20 Algorithmic Trading / non-RL  909536.1435  -90463.8565           -9.0464          -17.2897            -0.2254
+  199                 MCD_momentum_60 Algorithmic Trading / non-RL  907267.3027  -92732.6973           -9.2733          -18.0354            -0.2280
+  200                  PG_breakout_20 Algorithmic Trading / non-RL  901929.4700  -98070.5300           -9.8071          -21.4690            -0.2992
+  201                    PG_sma_20_50 Algorithmic Trading / non-RL  895401.1935 -104598.8065          -10.4599          -20.3613            -0.3364
+  202                    PG_ema_20_50 Algorithmic Trading / non-RL  894923.2853 -105076.7147          -10.5077          -25.8520            -0.3069
+  203                  PG_macd_8_21_9 Algorithmic Trading / non-RL  880378.5462 -119621.4538          -11.9621          -24.7732            -0.3471
+  204      AVGO_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL  878087.3808 -121912.6192          -12.1913          -37.2517            -0.0714
+  205                    PG_ema_12_26 Algorithmic Trading / non-RL  876129.6611 -123870.3389          -12.3870          -19.9835            -0.3938
+  206                 BA_buy_and_hold Algorithmic Trading / non-RL  876052.5798 -123947.4202          -12.3947          -45.7459             0.0209
+  207                  MCD_sma_50_200 Algorithmic Trading / non-RL  856485.5601 -143514.4399          -14.3514          -19.0468            -0.3346
+  208                  BA_breakout_10 Algorithmic Trading / non-RL  849976.6897 -150023.3103          -15.0023          -37.2207            -0.1954
+  209                MCD_macd_12_26_9 Algorithmic Trading / non-RL  845941.3426 -154058.6574          -15.4059          -23.6231            -0.4624
+  210                 MCD_breakout_10 Algorithmic Trading / non-RL  838660.0072 -161339.9928          -16.1340          -20.4151            -0.4776
+  211       BA_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL  837739.3134 -162260.6866          -16.2261          -27.4434            -0.3195
+  212                 PG_macd_12_26_9 Algorithmic Trading / non-RL  836674.5587 -163325.4413          -16.3325          -30.3127            -0.4979
+  213        PG_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL  835667.2158 -164332.7842          -16.4333          -23.4004            -0.5555
+  214                   PG_momentum_5 Algorithmic Trading / non-RL  835667.2158 -164332.7842          -16.4333          -23.4004            -0.5555
+  215                     BA_sma_5_20 Algorithmic Trading / non-RL  814624.1998 -185375.8002          -18.5376          -33.5157            -0.2890
+  216                     PG_sma_5_20 Algorithmic Trading / non-RL  810251.0835 -189748.9165          -18.9749          -29.9533            -0.5857
+  217      MCD_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL  810217.3131 -189782.6869          -18.9783          -21.5535            -0.5713
+  218                 MCD_momentum_20 Algorithmic Trading / non-RL  810217.3131 -189782.6869          -18.9783          -21.5535            -0.5713
+  219                  PG_momentum_60 Algorithmic Trading / non-RL  800366.4998 -199633.5002          -19.9634          -29.5943            -0.6792
+  220                  PG_momentum_20 Algorithmic Trading / non-RL  800289.1389 -199710.8611          -19.9711          -28.1728            -0.6745
+  221       PG_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL  800289.1389 -199710.8611          -19.9711          -28.1728            -0.6745
+  222       PG_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL  800195.7216 -199804.2784          -19.9804          -29.1702            -0.6525
+  223                  PG_momentum_10 Algorithmic Trading / non-RL  800195.7216 -199804.2784          -19.9804          -29.1702            -0.6525
+  224                    BA_sma_20_50 Algorithmic Trading / non-RL  799758.8158 -200241.1842          -20.0241          -31.5705            -0.3324
+  225                    BA_ema_12_26 Algorithmic Trading / non-RL  795324.0561 -204675.9439          -20.4676          -39.2499            -0.3241
+  226                 BA_macd_12_26_9 Algorithmic Trading / non-RL  792079.9443 -207920.0557          -20.7920          -47.5519            -0.2910
+  227                 MCD_momentum_10 Algorithmic Trading / non-RL  791385.0142 -208614.9858          -20.8615          -24.6533            -0.6906
+  228      MCD_vol_filter_m10_v20_0.4 Algorithmic Trading / non-RL  791385.0142 -208614.9858          -20.8615          -24.6533            -0.6906
+  229                  PG_breakout_55 Algorithmic Trading / non-RL  787698.6230 -212301.3770          -21.2301          -32.5538            -0.7805
+  230                   BA_sma_50_200 Algorithmic Trading / non-RL  779339.6877 -220660.3123          -22.0660          -40.9548            -0.2342
+  231       BA_vol_filter_m20_v20_0.4 Algorithmic Trading / non-RL  776983.2354 -223016.7646          -22.3017          -32.3637            -0.4325
+  232                  BA_breakout_20 Algorithmic Trading / non-RL  772877.7372 -227122.2628          -22.7122          -36.9883            -0.3585
+  233                  PG_breakout_10 Algorithmic Trading / non-RL  771217.0016 -228782.9984          -22.8783          -32.9598            -0.7570
+  234                     PG_ema_5_20 Algorithmic Trading / non-RL  767593.4898 -232406.5102          -23.2407          -32.8550            -0.7893
+  235                  MCD_momentum_5 Algorithmic Trading / non-RL  729083.5767 -270916.4233          -27.0916          -29.8921            -0.9233
+  236       MCD_vol_filter_m5_v10_0.4 Algorithmic Trading / non-RL  729083.5767 -270916.4233          -27.0916          -29.8921            -0.9233
+  237                  BA_breakout_55 Algorithmic Trading / non-RL  725071.4955 -274928.5045          -27.4929          -29.3158            -0.5842
+  238                 MCD_macd_8_21_9 Algorithmic Trading / non-RL  721662.5262 -278337.4738          -27.8337          -28.6479            -0.9788
+  239                  BA_momentum_60 Algorithmic Trading / non-RL  705916.5431 -294083.4569          -29.4083          -32.2909            -0.5683
+  240                    BA_sma_10_30 Algorithmic Trading / non-RL  698804.4890 -301195.5110          -30.1196          -40.2469            -0.5378
+  241                  BA_momentum_20 Algorithmic Trading / non-RL  693479.1161 -306520.8839          -30.6521          -45.3759            -0.5877
+  242                     BA_ema_5_20 Algorithmic Trading / non-RL  650217.2935 -349782.7065          -34.9783          -44.8383            -0.7040
+  243                    BA_ema_20_50 Algorithmic Trading / non-RL  584807.6290 -415192.3710          -41.5192          -45.7681            -0.9148
+
+====================================================================================================
+IQN Action Distribution (final eval, across all seeds)
+====================================================================================================
+action                 count   percent
+BUY                      596     49.7%
+HOLD                     198     16.5%
+SELL                     405     33.8%
+REBALANCE                  1      0.1%
+CHANGE_STRATEGY            0      0.0%  (not yet implemented)
+
+====================================================================================================
+Summary finished
+====================================================================================================
+Saved to: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_26_033816_d_iqn_dss_summary_dashboard\summary
+Key files:
+  summary_report.csv
+  summary_report.md
+  summary_dashboard.png
+  iqn_action_distribution.csv
+
+====================================================================================================
+Done
+====================================================================================================
+Output: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_26_033816_d_iqn_dss_summary_dashboard\summary\summary_dashboard.png

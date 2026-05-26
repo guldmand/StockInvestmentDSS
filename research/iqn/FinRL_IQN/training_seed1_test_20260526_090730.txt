@@ -1,0 +1,35 @@
+[verify_experiment_config] Loading manifest: configs\experiments\clean_25k_baseline_v1.json
+[verify] Cleared 23 pre-existing IQN env vars: ['STOCK_INVESTMENT_DSS_IQN_BATCH_SIZE', 'STOCK_INVESTMENT_DSS_IQN_REPLAY_CAPACITY', 'STOCK_INVESTMENT_DSS_IQN_TARGET_UPDATE_INTERVAL', 'STOCK_INVESTMENT_DSS_IQN_NUM_TAU_SAMPLES', 'STOCK_INVESTMENT_DSS_IQN_NUM_TAU_PRIME_SAMPLES', 'STOCK_INVESTMENT_DSS_IQN_NUM_ACTION_QUANTILES', 'STOCK_INVESTMENT_DSS_IQN_EPSILON_START', 'STOCK_INVESTMENT_DSS_IQN_EPSILON_FINAL', 'STOCK_INVESTMENT_DSS_IQN_EPSILON_DECAY_STEPS', 'STOCK_INVESTMENT_DSS_IQN_EPSILON_EVAL', 'STOCK_INVESTMENT_DSS_IQN_HIDDEN_DIM', 'STOCK_INVESTMENT_DSS_IQN_COSINE_EMBEDDING_DIM', 'STOCK_INVESTMENT_DSS_IQN_LEARNING_RATE', 'STOCK_INVESTMENT_DSS_IQN_LR', 'STOCK_INVESTMENT_DSS_IQN_GAMMA', 'STOCK_INVESTMENT_DSS_IQN_KAPPA', 'STOCK_INVESTMENT_DSS_IQN_USE_LAYER_NORM', 'STOCK_INVESTMENT_DSS_IQN_CONFIG_PRESET', 'STOCK_INVESTMENT_DSS_IQN_LEARNING_STARTS', 'STOCK_INVESTMENT_DSS_IQN_BACKTEST_SCORE_MODE', 'STOCK_INVESTMENT_DSS_IQN_BACKTEST_NUM_QUANTILES', 'STOCK_INVESTMENT_DSS_IQN_EVAL_QUANTILES', 'STOCK_INVESTMENT_DSS_IQN_BACKTEST_MAX_STEPS']
+[verify] Applied 46 env_overrides from manifest.
+
+[verify] --- IQN Config Assertion ---
+  [PASS] batch_size: expected=64  actual=64
+  [PASS] replay_capacity: expected=100000  actual=100000
+  [PASS] target_update_interval: expected=1000  actual=1000
+  [PASS] num_tau_samples: expected=32  actual=32
+  [PASS] num_tau_prime_samples: expected=32  actual=32
+  [PASS] num_action_quantiles: expected=32  actual=32
+  [PASS] epsilon_decay_steps: expected=15000  actual=15000
+  [PASS] epsilon_start: expected=1.0  actual=1.0
+  [PASS] epsilon_final: expected=0.05  actual=0.05
+  [PASS] epsilon_eval: expected=0.0  actual=0.0
+  [PASS] use_layer_norm: expected=True  actual=True
+  [PASS] hidden_dim: expected=128  actual=128
+  [PASS] cosine_embedding_dim: expected=64  actual=64
+  [PASS] gamma: expected=0.99  actual=0.99
+  [PASS] kappa: expected=1.0  actual=1.0
+  [PASS] total_steps: expected=25000  actual=25000
+  [PASS] learning_starts: expected=2000  actual=2000
+
+[verify] RESULT: PASS ù all 17 assertions match.
+[verify] Artifact written: outputs\config_checks\clean_25k_baseline_v1_config_check.json
+2026-05-26 09:07:33,106 | INFO | stock_investment_dss.system | Starting StockInvestmentDSS IQN learning curve multiseed launcher.
+2026-05-26 09:07:33,106 | INFO | stock_investment_dss.system | Project root: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN
+2026-05-26 09:07:33,113 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Created run directory: C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher
+2026-05-26 09:07:33,113 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Run id: 2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher
+2026-05-26 09:07:33,113 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+2026-05-26 09:07:33,113 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Stop on failure: True
+2026-05-26 09:07:33,114 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Run summary after: True
+2026-05-26 09:07:33,114 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=1
+2026-05-26 09:11:07,157 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Seed 1 completed successfully.
+2026-05-26 09:11:07,157 | INFO | stock_investment_dss.run.2026_05_26_090733_d_iqn_dss_iqn_learning_curve_multiseed_launcher | Launching IQN learning curve run for seed=2

@@ -41,3 +41,9 @@ wandb/
 /logs/system.log
 /logs/*
 /logs/*.log
+
+
+# context 
+.claude_context
+.claude_context/
+.claude_context/*

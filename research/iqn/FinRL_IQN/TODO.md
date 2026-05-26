@@ -168,111 +168,88 @@ V1 etape 3 algorithmic baselines port ✅
   - finding: naive_one_over_n_rebalanced_21d +1950.73% / -29.73%
   - finding: best KO single-ticker bollinger_mr_20_2 +275.82%
   - backup/tag: etape-3-complete
+  ↓
+V1 etape 4½ integration bonus features ✅ / 2026-05-25
+  - 3-layer pipeline orchestrator: scripts/all_baselines_and_iqn_demo_5.py ✅
+  - runs algorithmic + FinRL + IQN end-to-end in ~3 minutes ✅
+  - PIT window filtering correction across all 11 algorithmic baselines ✅
+  - uniform 0.1% transaction cost applied to all 242 algorithmic configs ✅
+  - 3 new visualization modules (algorithmic, finrl multi-baseline, transaction logs) ✅
+  - IQN device=auto bug fix in run_iqn_learning_curve_smoke_test.py ✅
+  - Windows long path support + sys.path injection for reproducibility ✅
+  - data migration completed (Device A → Device B via robocopy) ✅
+  - finding: AVGO buy_and_hold +290.1% (was +31,063% pre-fix) ✅
+  - finding: equal_weight portfolio +90.8% over PIT window ✅
 ↓
-V1 etape 4 FinRL parametric RL baselines port ✅ / 2026-05-25
-  - decision document: outputs/run_registry/etape_4_finrl_decision.md ✅
-  - PRE-EXISTING V2 infrastructure audited:
-    - run_finrl_baseline_suite_smoke_test.py ✅
-    - run_finrl_baseline_multiseed_launcher.py ✅
-    - run_finrl_baseline_multiseed_summary.py ✅
-  - Bug 1 discovered and fixed: hardcoded seed=42 in suite runner ✅
-    - line 57 ignored multiseed launcher's seed injection
-    - all 5 seeds in first multiseed produced bit-identical PPO actions
-    - fix: read STOCK_INVESTMENT_DSS_RANDOM_SEED / _FINRL_SEED / _SB3_SEED
-    - verification: 3 unique PPO action_memory hashes across seeds ✅
-    - backup: backup_seed_fix_20260524_230939
-  - Bug 2 discovered and fixed: V2 multiseed_summary aggregator filter ✅
-    - before fix: 42 rows → 0 after filter, no plots
-    - after seed fix: 53 rows → 9 after filter, 5 plots generated
-  - Bug 3 discovered and fixed: missing rich output ✅
-    - V2 FinRL suite runner only wrote to data/, summary/, models/
-    - RICH patch added 3 new helpers:
-      - _write_config_snapshot() → config/finrl_baseline_suite_config.json
-      - _write_per_agent_metrics() → metrics/finrl_baseline_suite/{agent}/{agent}_metrics.json
-      - _render_per_agent_plots() → plots/finrl_baseline_suite/{agent}/ (portfolio value,
-        actions over time, action distribution histogram)
-    - backup: backup_rich_patch_20260524_235814
-  - Bug 4 discovered and fixed: missing W&B integration ✅
-    - V2 FinRL runners had ZERO W&B integration (verified across 55 V2 runners)
-    - only 6 of 55 V2 runners had W&B (all IQN-related)
-    - added _log_outputs_to_wandb() helper using experiment_tracking/wandb_tracking.py
-    - logs per-agent scalars, plot images, full artifact upload
-    - tags: finrl, baseline, sb3, parametric-rl, stockdss
-  - Bug 5 discovered and fixed: wandb/ mappe oprettedes i repo root ✅
-    - cause: wandb_tracking.py kaldte wandb.init() uden dir= parameter
-    - fix: added run_directory parameter to init_wandb_run()
-    - suite runner sends run_directory=str(run_paths.run_directory)
-    - wandb/ now lives inside outputs/runs/{run_id}/wandb/
-  - micro-multiseed-first rule established (~70 sec validation before 58 min runs)
-  - finrl_micro_multiseed_demo_5.py created (3 seeds × 3 agents × 500 steps × 5 tickers)
-  - finrl_multiseed_demo_10_new.py created (5 seeds × 6 agents × 25k steps × 10 tickers)
-  - finrl_seed_injection_test.py created (PPO hash verification)
-  - Per multiseed batch produces 5 outputs:
-    - 1 launcher run
-    - 3 (or 5) seed runs with full rich output (9 directories populated)
-    - 1 aggregator run (mean±std plots in summary/)
-  - Each seed run contains:
-    - audit/ (empty, by design)
-    - config/ (1 JSON)
-    - data/finrl_baseline_suite/{agent}/ (14 files)
-    - logs/ (2 files)
-    - metrics/finrl_baseline_suite/{agent}/ (1 JSON per agent)
-    - models/finrl_baseline_suite/ ({agent}.zip per RL agent)
-    - plots/finrl_baseline_suite/{agent}/ (3 PNGs per RL agent + 1 for MVO)
-    - summary/ (snapshot CSV + summary JSON)
-    - wandb/ (15 files, auto-generated, inside run dir)
-  - W&B cloud verification: 9+ runs visible on wandb.ai/guldmand-SDU/StockInvestmentDSS
-  - micro multiseed total runtime: ~70 sec (validation pipeline)
-  - full multiseed runtime: ~58 min (5 seeds × 25k steps × 6 agents) — pending execution
-  - .gitignore updated: wandb/ + .wandb/ excluded from repo root
+V1 etape 5 summary dashboard port ✅ DONE / 2026-05-26 05:18
+  - new file: src/stock_investment_dss/visualization/summary_dashboard.py ✅
+  - 4-panel layout matching v1 reference (StockDSS Runner Summary) ✅
+  - panel 1: total return by strategy (horizontal bar) ✅
+  - panel 2: maximum drawdown by strategy (horizontal bar) ✅
+  - panel 3: annualized Sharpe by strategy (horizontal bar) ✅
+  - panel 4: last IQN decision risk-adjusted action score ✅
+  - color coding: FinRL blue, algorithmic green, IQN orange ✅
+  - 246 strategies populated:
+    - 240 algorithmic baselines (etape 3 grid)
+    - 5 FinRL agents (10-seed multiseed: A2C/DDPG/PPO/TD3/SAC)
+    - 1 MVO baseline
+    - 1 D-IQN-DSS (10-seed clean_25k)
+  - output: outputs/runs/2026_05_26_051810_d_iqn_dss_summary_dashboard/ ✅
+    - data/strategies_combined.csv (246 rows)
+    - summary/summary_dashboard.png
+    - config/, plots/, logs/ (rich output)
+  - 10-seed multiseed aggregation:
+    - Action distribution: HOLD 61.4%, BUY 15.8%, SELL 22.6%, REBALANCE 0.2%
+    - D-IQN-DSS mean: return 43.86%, Sharpe 1.48, drawdown -8.16%
+  - rich output pattern (config/, plots/, summary/, data/, logs/) ✅
+  - W&B logging via wandb_tracking helper ✅
+  - HDP/EDL variants deferred to Phase B ablation ✅
+  - py_compile passes ✅
+  - backup/tag: etape-5-complete ✅
 ↓
-V1 etape 5 summary dashboard port ⬅️ NEXT
-  - new file: src/stock_investment_dss/visualization/summary_dashboard.py
-  - 4-panel layout matching v1 reference (StockDSS Runner Summary)
-  - panel 1: total return by strategy (horizontal bar)
-  - panel 2: maximum drawdown by strategy (horizontal bar)
-  - panel 3: annualized Sharpe by strategy (horizontal bar)
-  - panel 4: last IQN decision risk-adjusted action score
-  - color coding: FinRL blue, algorithmic green, IQN orange
-  - inputs aggregated from:
-    - etape 3 (algorithmic_baseline_grid_demo_10_new run)
-    - etape 4 (FinRL multiseed runs)
-    - existing IQN learning curve runs (137 W&B runs already exist)
-  - output: outputs/runs/{timestamp}_d_iqn_dss_summary_dashboard/summary/summary_dashboard.png
-  - rich output pattern (config/, plots/, summary/) consistent with etape 4
-  - W&B logging via wandb_tracking helper
-  - HDP/EDL variants deferred to ablation
-  - py_compile passes
-  - smoke test with 12+ strategies populated
-  - backup before starting
+V1 etape 6 compare_algorithmic_results report ✅ DONE / 2026-05-26 06:34
+  - new file: src/stock_investment_dss/algorithmic_trading/experiments/compare_algorithmic_results.py ✅
+  - new file: scripts/build_comparison_report.py ✅ (CLI auto-discoverer)
+  - function: find_metric_files (auto-discovers strategies_combined.csv) ✅
+  - function: load_metrics (concat + numeric coerce + dedup) ✅
+  - function: add_rankings (rank_return, rank_sharpe, rank_drawdown, combined_rank) ✅
+  - function: make_insights (5-section markdown) ✅
+  - function: save_markdown_report (4 CSV outputs + markdown) ✅
+  - input: 2026_05_26_051810_d_iqn_dss_summary_dashboard/data/strategies_combined.csv
+  - output: outputs/runs/2026_05_26_063445_d_iqn_dss_comparison_report/ ✅
+    - summary/comparison.md (thesis-citable)
+    - summary/comparison.csv
+    - summary/algorithmic_only.csv
+    - summary/rl_only.csv
+    - data/strategies_ranked_full.csv
+    - config/comparison_report_config.json
+    - logs/run.log
+  - KEY FINDINGS:
+    - Top 5: CAT_breakout_55 (rank 16.33), WMT_momentum_10, CAT_sma_20_50, ORCL_vol_filter, WMT_momentum_60
+    - Best algorithmic: CAT_breakout_55 (+190.22%, Sharpe 1.85)
+    - Best FinRL: MVO (rank 49.00, +126.69%)
+    - D-IQN-DSS: rank 37.67/246 (top 15%), Sharpe rank 20, drawdown rank 3
+    - DeMiguel 1/N rebalanced: rank 36.67 (academic validation)
+    - Tier comparison (mean): IQN Sharpe 1.48 > FinRL 1.31 > Algorithmic 0.51
+  - W&B logging with 11 metrics including iqn_rank_return, iqn_rank_sharpe, iqn_rank_drawdown ✅
+  - rich output pattern (config/, summary/, data/, logs/) ✅
+  - py_compile passes ✅
+  - backup/tag: etape-6-complete ✅
 ↓
-V1 etape 6 compare_algorithmic_results report ⬅️ AFTER ETAPE 5
-  - new file: src/stock_investment_dss/algorithmic_trading/experiments/compare_algorithmic_results.py
-  - function: find_metric_files
-  - function: load_metrics
-  - function: add_rankings (by return, Sharpe, drawdown, combined)
-  - function: make_insights
-  - function: save_markdown_report
-  - output: outputs/runs/{timestamp}_d_iqn_dss_comparison_report/summary/comparison.md + .csv
-  - rich output pattern + W&B logging
-  - py_compile passes
-  - smoke test with 3 dummy metric CSVs
-  - backup before starting
-↓
-V1 etape 7 Demo_Baselines_and_IQN orchestrator ⬅️ AFTER ETAPE 6
-  - new file: src/stock_investment_dss/runner/run_demo_baselines_and_iqn.py
-  - single thesis-demo runner orchestrating entire pipeline
+V1 etape 7 Demo_Baselines_and_IQN orchestrator ✅ DONE / 2026-05-26 07:30
+  - new file: src/stock_investment_dss/runner/run_demo_baselines_and_iqn.py ✅
+  - single thesis-demo runner orchestrating entire pipeline ✅
   - CLI args: --universe, --pit-decision-date, --iqn-checkpoint, --finrl-timesteps,
-    --skip-finrl-training, --output-dir
-  - steps: load Mode B dataset → algorithmic → FinRL train+backtest → MVO → IQN inference
-    → decision dashboard (etape 1) → summary dashboard (etape 5) → comparison report (etape 6)
-  - output: outputs/runs/{timestamp}_d_iqn_dss_demo_baselines_and_iqn/
-  - showcase script for thesis evidence and professor demo
-  - rich output pattern + W&B logging
-  - py_compile passes
-  - smoke test with --skip-finrl-training=true
-  - full run on demo_10_new succeeds end-to-end
-  - backup before starting
+    --skip-finrl-training, --output-dir, --continue-on-error ✅
+  - steps: load Mode B dataset → algorithmic → FinRL train+backtest → IQN inference
+    → decision dashboard (skipped) → summary dashboard → comparison report → master summary ✅
+  - output: outputs/runs/2026_05_26_072929_d_iqn_dss_demo_baselines_and_iqn/ ✅
+  - showcase script for thesis evidence and professor demo ✅
+  - rich output pattern + W&B logging ✅
+  - py_compile passes ✅
+  - smoke test with --skip-finrl-training=true (58 seconds end-to-end) ✅
+  - 3-tier IQN checkpoint resolution + SHA-256 dataset hashing ✅
+  - backup/tag: etape-7-complete ✅
 ↓
 B) IQN rich-output patch ⬅️ OPTIONAL POLISH AFTER ETAPE 5
   - decision: whether to apply same RICH pattern to IQN learning curve runner
@@ -301,23 +278,33 @@ Full FinRL multiseed thesis evidence run ⬅️ WHEN READY
   - command: python scripts\finrl_multiseed_demo_10_new.py
   - produces thesis-grade FinRL evidence with statistical variance
 ↓
-EDL-A dataset builder ⬅️ AFTER IQN BASELINE
-  - build from counterfactual hindsight labels
+Full FinRL multiseed thesis evidence run ✅ DONE / 2026-05-26 ~05:00
+  - confirmed: outputs/runs/2026_05_26_050316_d_iqn_dss_finrl_baseline_multiseed_summary
+  - All 6 agents (A2C, DDPG, PPO, TD3, SAC, MVO) × multiseed ✅
+  - Used in etape 7 demo orchestrator successfully ✅
+↓
+EDL-A dataset builder ⬅️ NEXT (Phase B.2 — after Phase B.1)
+  - existing infrastructure: edl_action_dataset_v2.py + run_edl_action_dataset_v2_builder.py
+  - build from counterfactual hindsight labels (counterfactual mode, NOT iqn_teacher)
   - exclude future outcome columns from input features
-  - train/validation/test split inside PIT training period
+  - train/validation/test split inside PIT training period (80/20 time-ordered)
   - final PIT evaluation period kept untouched
 ↓
-Reference-aligned EDL-A training ⬅️ AFTER EDL-A DATASET
+Reference-aligned EDL-A training ⬅️ Phase B.3 — after EDL-A DATASET
+  - existing infrastructure: run_edl_action_training_v2_smoke_test.py
+  - scale up: 50 epochs (not 10 as smoke)
+  - LABEL MODE = "counterfactual" (CRITICAL — not iqn_teacher!)
   - MSE / log / digamma losses
   - KL annealing
   - evidence activation variants
   - best validation checkpoint
-  - majority baseline
+  - majority baseline comparison
   - balanced accuracy
   - macro F1
   - vacuity correct vs incorrect
 ↓
-IQN + HDP + EDL-A gate ⬅️ AFTER EDL-A VALIDATION
+IQN + HDP + EDL-A gate ⬅️ Phase B.4 — after EDL-A VALIDATION
+  - existing infrastructure: run_edl_action_gate_end_to_end_smoke_test.py
   - uncertainty-aware decision gating
   - human-review flags
   - pass-through / reduce / hold logic
@@ -334,27 +321,138 @@ Ablation suite ⬅️ AFTER CLEAN DIAGNOSTIC PLOTS
   - optional clean 50k only after clean 25k interpretation
   - optional epsilon schedule ablation
 ↓
+↓
+Ablation suite ⬅️ Phase B.5 — KERNE THESIS QUESTION
+  - 4-way ablation matrix:
+    - IQN only (Phase B.1 output partial)
+    - IQN + HDP (Phase B.1 output) 
+    - IQN + EDL-A (subset of B.4)
+    - IQN + HDP + EDL-A (full stack, B.4)
+  - existing infrastructure: 
+    - run_iqn_vs_baseline_comparison_summary.py
+    - run_iqn_vs_baseline_comparison_plot.py
+  - toggles via env vars: 
+    - STOCK_INVESTMENT_DSS_USE_HIERARCHICAL_POLICY=true/false
+    - STOCK_INVESTMENT_DSS_USE_EDL=true/false
+    - STOCK_INVESTMENT_DSS_EDL_VARIANT=A/B/C
+  - DEFERRED to post-thesis (optional):
+    - clean 50k baseline 
+    - epsilon schedule ablation
+↓
 Demo_5 / Demo_10 comparison summary ⬅️ REFRESH AFTER CLEAN PIPELINE
+Demo_5 / Demo_10 comparison summary ⬅️ Phase C — REFRESH AFTER ABLATION
 ↓
 Demo_5 / Demo_10 comparison plots ⬅️ REFRESH AFTER CLEAN PIPELINE
+Demo_5 / Demo_10 comparison plots ⬅️ Phase C — REFRESH AFTER ABLATION
 ↓
 Thesis evidence package ⬅️ REFRESH AFTER CLEAN PIPELINE
+Thesis evidence package ⬅️ Phase C — FINAL REFRESH
 ↓
 Demo_30 Mode B experiment ⬅️ OPTIONAL / IF TIME
+Demo_30 Mode B experiment ⏳ OPTIONAL / IF TIME
 ↓
 IQN hyperparameter tuning / validation design ⬅️ MODEL-QUALITY STEP
+IQN hyperparameter tuning / validation design ⏳ POST-THESIS
 ↓
 CHANGE_STRATEGY later reactivation ⬅️ IMPORTANT LATER
+CHANGE_STRATEGY later reactivation ⏳ POST-THESIS
 ↓
 Watchlist / candidate universe ⬅️ LATER
+Watchlist / candidate universe ⏳ POST-THESIS
 ↓
 Existing portfolio / new portfolio input ⬅️ LATER
+Existing portfolio / new portfolio input ⏳ POST-THESIS
 ↓
 Recommendation engine ⬅️ LATER / WEB POC
+Recommendation engine ⏳ POST-THESIS / WEB POC
 ↓
+Audit log ✅ / v1, later expanded
 Audit log ✅ / v1, later expanded
 ↓
 Common evaluation suite ✅ / partly, improving toward thesis-grade evaluation
+Common evaluation suite ✅ / partly (improving toward thesis-grade evaluation)
+
+
+--------------------------------------------------
+
+2️⃣ Hvad betyder "Phase B"?
+Lad mig konsolidere det helt klart:
+
+Phase       Hvad                            Estimeret tid       Status
+Phase A     V1→V2 port (etape 1-7)          ~24 timer✅        COMPLETE
+Phase B     EDL-A production + ablation     ~4-5 timer🟡       STARTING B.1
+Phase C     Thesis evidence refresh         ~2-3 timer⏳       Pending
+Phase D     Demo_30 (optional)              10-20 timer⏳      Optional
+Phase E     Thesis writing                  3 dage⏳           Friday-Sunday
+
+
+Phase B detaljer:
+
+Sub-phase   Hvad                             Tid                Status
+B.1 Combined IQN+HDP audit production        ~30 min🟡         NOW
+B.2 EDL-A counterfactual oracle production   ~15 min⏳         Next
+B.3 EDL-A v2 training (counterfactual labels)~1 hour⏳         Next
+B.44-way ablation runs (parallelizable)      ~2 hours⏳        Next
+B.5Ablation comparison dashboard             ~30 min⏳         Next
+
+--------------------------------------------------
+
+Den oprindelige turbo-plan var:
+04:30 → Start FinRL multiseed
+05:00 → Verify smoke tests
+06:00 → FinRL done, restart dashboard
+07:00 → Test etape 6+7, commit, SLEEP
+
+Actual status (06:35 + nu):
+
+
+Plan          Status
+
+04:30 FinRL multiseed           ✅ Done (~05:00)
+05:00 Smoke tests               ✅ Done (alle 8 smoke tests passerede)
+06:00 Summary dashboard         ✅ Done (~05:18)
+07:00 Test etape 6              ✅ Done (06:34)
+07:30 Test etape 7              ✅ Done (07:30)
+07:40 Commit alt                ✅ Done (07:40)
+07:40 SLEEP                     ❌ Du sover ikke endnu!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ----------------------
