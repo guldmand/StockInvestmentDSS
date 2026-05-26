@@ -1,0 +1,13 @@
+{
+  "inputs": {
+    "algorithmic_summary_csv": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_231708_d_iqn_dss_algorithmic_baseline_grid_demo_10_new_micro\\summary\\algorithmic_baselines_summary.csv",
+    "finrl_aggregate_csv": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_231849_d_iqn_dss_finrl_baseline_multiseed_summary\\summary\\finrl_baseline_multiseed_aggregate_by_agent.csv",
+    "iqn_metrics_csv": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_232005_d_iqn_dss_iqn_learning_curve_multiseed_summary\\summary\\iqn_learning_curve_multiseed_final_records.csv",
+    "iqn_eval_records_csv": "C:\\Users\\gurug\\Dropbox\\DataScience\\Speciale\\Devices\\dev\\StockInvestmentDSS\\research\\iqn\\FinRL_IQN\\outputs\\runs\\2026_05_25_232005_d_iqn_dss_iqn_learning_curve_multiseed_summary\\data\\iqn_learning_curve_multiseed_eval_records.csv"
+  },
+  "parameters": {
+    "run_name": "d_iqn_dss_summary_dashboard",
+    "max_display_strategies": 18
+  },
+  "output_run_dir": "2026_05_26_033816_d_iqn_dss_summary_dashboard"
+}

@@ -1,0 +1,11 @@
+2026-05-26 03:38:16,590 INFO Loading strategy metrics from all tiers
+2026-05-26 03:38:16,604 WARNING Skipping algorithmic row with missing annualized_sharpe: rsi_14_25_75
+2026-05-26 03:38:16,604 WARNING Skipping algorithmic row with missing annualized_sharpe: rsi_14_25_75
+2026-05-26 03:38:16,604 WARNING Skipping algorithmic row with missing annualized_sharpe: rsi_14_25_75
+2026-05-26 03:38:16,623 INFO Loaded 243 strategies (239 algorithmic, 3 FinRL, 1 IQN)
+2026-05-26 03:38:16,623 INFO Parsing IQN action distribution from eval records
+2026-05-26 03:38:16,632 INFO Selecting top 18 strategies for display
+2026-05-26 03:38:16,634 INFO Rendering dashboard figure -> C:\Users\gurug\Dropbox\DataScience\Speciale\Devices\dev\StockInvestmentDSS\research\iqn\FinRL_IQN\outputs\runs\2026_05_26_033816_d_iqn_dss_summary_dashboard\summary\summary_dashboard.png
+2026-05-26 03:38:17,143 INFO Saved summary_report.csv and summary_report.md
+2026-05-26 03:38:17,146 INFO Saved strategies_combined.csv and iqn_action_distribution.csv
+2026-05-26 03:38:17,146 INFO Saved config JSON
