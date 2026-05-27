@@ -79,6 +79,9 @@ def main() -> int:
     for key, value in download_env.items():
         os.environ[key] = value
 
+    # CRITICAL: Override .env's import_file to force fresh FMP/yfinance download
+    os.environ["STOCK_INVESTMENT_DSS_DAILY_DATA_IMPORT_FILE"] = ""
+
     # -------------------------------------------------------------------
     # Print configuration
     # -------------------------------------------------------------------
