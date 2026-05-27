@@ -73,6 +73,10 @@ def main() -> int:
         "STOCK_INVESTMENT_DSS_YFINANCE_IMPERSONATE": "firefox135",
         "STOCK_INVESTMENT_DSS_YFINANCE_TIMEOUT_SECONDS": "30",
         # No explicit ticker list — uses sp500 from ticker_universes.py
+        # Technical indicators + VIX + Turbulence ALL ENABLED
+        "STOCK_INVESTMENT_DSS_DAILY_DATA_USE_TECHNICAL_INDICATORS": "true",
+        "STOCK_INVESTMENT_DSS_DAILY_DATA_USE_VIX": "false",
+        "STOCK_INVESTMENT_DSS_DAILY_DATA_USE_TURBULENCE": "false",
     }
 
     # Apply env vars to current process environment
@@ -80,7 +84,8 @@ def main() -> int:
         os.environ[key] = value
 
     # CRITICAL: Override .env's import_file to force fresh FMP/yfinance download
-    os.environ["STOCK_INVESTMENT_DSS_DAILY_DATA_IMPORT_FILE"] = ""
+    # os.environ["STOCK_INVESTMENT_DSS_DAILY_DATA_IMPORT_FILE"] = ""
+    os.environ.pop("STOCK_INVESTMENT_DSS_DAILY_DATA_IMPORT_FILE", None)
 
     # -------------------------------------------------------------------
     # Print configuration

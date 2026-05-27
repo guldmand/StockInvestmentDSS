@@ -34,6 +34,7 @@ class FinRLDailyDataResult:
     paths: DailyMarketDataPaths
     metadata: dict[str, Any]
 
+
 @dataclass(frozen=True)
 class DownloadAttemptResult:
     method: str
@@ -43,6 +44,54 @@ class DownloadAttemptResult:
     error_by_ticker: dict[str, str]
     attempts: list[dict[str, Any]]
     status: str
+
+
+def _patch_yfinance_for_windows_ssl() -> None:
+    """
+    Monkey-patch yfinance.download to use a curl_cffi browser session.
+
+    This enables FinRL's YahooDownloader (which calls yf.download internally
+    WITHOUT a session parameter) to work on Windows where the default
+    curl_cffi SSL stack fails.
+
+    Effect:
+    - On Linux/Colab: No effect (default session works there)
+    - On Windows: yf.download uses curl_cffi session with impersonate=firefox135
+                  This makes FinRL chunked bulk download work
+    """
+    import os
+
+    try:
+        import yfinance as yf
+        from curl_cffi import requests as curl_requests
+    except ImportError:
+        return  # Skip if not installed
+
+    if hasattr(yf.download, "_curl_cffi_patched"):
+        return  # Already patched
+
+    impersonate = os.environ.get(
+        "STOCK_INVESTMENT_DSS_YFINANCE_IMPERSONATE",
+        "firefox135",
+    )
+
+    _ssl_session = curl_requests.Session(impersonate=impersonate)
+    _original_download = yf.download
+
+    def _patched_download(*args, **kwargs):
+        if "session" not in kwargs:
+            kwargs["session"] = _ssl_session
+        return _original_download(*args, **kwargs)
+
+    _patched_download._curl_cffi_patched = True
+    yf.download = _patched_download
+    print(
+        f"[INIT] yfinance.download monkey-patched with curl_cffi session (impersonate={impersonate})"
+    )
+
+
+# Apply patch immediately on import
+_patch_yfinance_for_windows_ssl()
 
 
 def _load_finrl_components():
@@ -253,7 +302,9 @@ def _download_finrl_raw_data_in_chunks(
             ).fetch_data(auto_adjust=False)
 
             if chunk_data is None or chunk_data.empty:
-                reason = "FinRL YahooDownloader returned an empty dataframe for this chunk."
+                reason = (
+                    "FinRL YahooDownloader returned an empty dataframe for this chunk."
+                )
                 failed.update(chunk)
                 for ticker in chunk:
                     error_by_ticker[ticker] = reason
@@ -320,7 +371,11 @@ def _download_finrl_raw_data_in_chunks(
         raw_data=raw_data,
         downloaded_tickers=downloaded_list,
         failed_tickers=failed_list,
-        error_by_ticker={ticker: error_by_ticker[ticker] for ticker in failed_list if ticker in error_by_ticker},
+        error_by_ticker={
+            ticker: error_by_ticker[ticker]
+            for ticker in failed_list
+            if ticker in error_by_ticker
+        },
         attempts=attempts,
         status=status,
     )
@@ -482,7 +537,9 @@ def _download_yfinance_browser_session_raw_data_in_chunks(
 
                 frames.append(ticker_frame)
                 downloaded.add(ticker)
-                attempt["row_count"] = int(attempt["row_count"]) + int(len(ticker_frame))
+                attempt["row_count"] = int(attempt["row_count"]) + int(
+                    len(ticker_frame)
+                )
 
             except Exception as exc:
                 failed.add(ticker)
@@ -517,7 +574,11 @@ def _download_yfinance_browser_session_raw_data_in_chunks(
         raw_data=raw_data,
         downloaded_tickers=downloaded_list,
         failed_tickers=failed_list,
-        error_by_ticker={ticker: error_by_ticker[ticker] for ticker in failed_list if ticker in error_by_ticker},
+        error_by_ticker={
+            ticker: error_by_ticker[ticker]
+            for ticker in failed_list
+            if ticker in error_by_ticker
+        },
         attempts=attempts,
         status=status,
     )
@@ -589,7 +650,6 @@ def _load_finrl_generated_import(
     return raw_data, processed_data
 
 
-
 def _download_completeness_report(
     *,
     requested_tickers: tuple[str, ...],
@@ -630,7 +690,9 @@ def _download_completeness_report(
         "missing_required_tickers": missing,
         "row_count_by_ticker": {str(k): int(v) for k, v in row_count_by_ticker.items()},
         "download_status": download_status,
-        "data_completeness_ok": bool(not missing) if require_all_tickers else bool(actual),
+        "data_completeness_ok": (
+            bool(not missing) if require_all_tickers else bool(actual)
+        ),
     }
 
 
@@ -737,7 +799,9 @@ def load_or_create_finrl_daily_dataset(
 
         completeness = _download_completeness_report(
             requested_tickers=tickers,
-            downloaded_tickers=list(cached_result.processed_data["tic"].astype(str).str.upper().unique()),
+            downloaded_tickers=list(
+                cached_result.processed_data["tic"].astype(str).str.upper().unique()
+            ),
             failed_tickers=[],
             processed_data=cached_result.processed_data,
             require_all_tickers=require_all_tickers,
@@ -747,13 +811,15 @@ def load_or_create_finrl_daily_dataset(
                 "Cached dataset is incomplete for the requested universe. "
                 f"completeness={completeness}"
             )
-        cached_result.metadata.update({
-            "download_status": completeness["download_status"],
-            "data_completeness_ok": completeness["data_completeness_ok"],
-            "missing_required_tickers": completeness["missing_required_tickers"],
-            "row_count_by_ticker": completeness["row_count_by_ticker"],
-            "require_all_tickers": bool(require_all_tickers),
-        })
+        cached_result.metadata.update(
+            {
+                "download_status": completeness["download_status"],
+                "data_completeness_ok": completeness["data_completeness_ok"],
+                "missing_required_tickers": completeness["missing_required_tickers"],
+                "row_count_by_ticker": completeness["row_count_by_ticker"],
+                "require_all_tickers": bool(require_all_tickers),
+            }
+        )
         return cached_result
 
     download_error: str | None = None
@@ -862,11 +928,13 @@ def load_or_create_finrl_daily_dataset(
                 )
                 download_attempts.extend(yfinance_result.attempts)
 
-                processed_data, technical_indicators = _process_with_finrl_feature_engineer(
-                    raw_data=yfinance_result.raw_data,
-                    use_technical_indicators=use_technical_indicators,
-                    use_vix=use_vix,
-                    use_turbulence=use_turbulence,
+                processed_data, technical_indicators = (
+                    _process_with_finrl_feature_engineer(
+                        raw_data=yfinance_result.raw_data,
+                        use_technical_indicators=use_technical_indicators,
+                        use_vix=use_vix,
+                        use_turbulence=use_turbulence,
+                    )
                 )
 
                 completeness = _download_completeness_report(
@@ -900,7 +968,9 @@ def load_or_create_finrl_daily_dataset(
                     "download_attempts": download_attempts,
                     "download_status": completeness["download_status"],
                     "data_completeness_ok": completeness["data_completeness_ok"],
-                    "missing_required_tickers": completeness["missing_required_tickers"],
+                    "missing_required_tickers": completeness[
+                        "missing_required_tickers"
+                    ],
                     "row_count_by_ticker": completeness["row_count_by_ticker"],
                     "raw_row_count": int(len(yfinance_result.raw_data)),
                     "processed_row_count": int(len(processed_data)),
@@ -940,7 +1010,9 @@ def load_or_create_finrl_daily_dataset(
             end_date=end_date,
         )
 
-        actual_tickers = sorted(processed_data["tic"].astype(str).str.upper().unique().tolist())
+        actual_tickers = sorted(
+            processed_data["tic"].astype(str).str.upper().unique().tolist()
+        )
         completeness = _download_completeness_report(
             requested_tickers=tickers,
             downloaded_tickers=actual_tickers,
