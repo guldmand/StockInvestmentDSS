@@ -994,7 +994,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    run_paths = create_run_paths("d_iqn_dss_edl_action_training_v3_production")
+    run_paths = create_run_paths("d_iqn_dss_edl_action_training_v3_phase3_4_resume")
     logger = setup_run_logger(run_paths)
     run_start = datetime.now()
 
@@ -1186,38 +1186,30 @@ def main() -> int:
         "lr_scheduler_patience": args.lr_scheduler_patience,
     }
 
-    logger.info("--- HP SEARCH Phase 1 (Optimizer x Activation x Architecture) ---")
-    df_phase1 = run_hp_phase(
-        phase_num=1,
-        grid=grids["phase1"],
-        defaults=defaults_p1,
-        X=X_train_star,
-        y=y_train_star,
-        skf=skf,
-        input_dim=input_dim,
-        args=args,
-        hp_search_dir=hp_search_dir,
-        csv_filename="phase1_optimizer_search.csv",
-        logger=logger,
-        wandb_urls=wandb_urls,
-    )
-
-    best1_row = df_phase1.iloc[0]
-    best1_optimizer = str(best1_row["optimizer"])
-    best1_activation = str(best1_row["activation"])
-    best1_hidden_dims = _hidden_dims_from_row(best1_row)
-
     logger.info(
-        "Phase 1 best: optimizer=%s, activation=%s, hidden=%s -> cv_acc=%.3f",
+        "--- HP SEARCH Phase 1 SKIPPED (resume mode: using hardcoded best from prior interrupted run) ---"
+    )
+    df_phase1 = None
+    best1_optimizer = "Adam"
+    best1_activation = "ReLU"
+    best1_hidden_dims = [256, 128]
+    _phase1_prior = {
+        "optimizer": best1_optimizer,
+        "activation": best1_activation,
+        "hidden_dims": best1_hidden_dims,
+        "cv_mean_acc": 0.530,
+        "cv_std_acc": 0.088,
+        "mean_epochs_trained": 42,
+        "source": "prior interrupted full-mode run (36 combos x 10 folds = 360 runs)",
+    }
+    logger.info(
+        "Phase 1 hardcoded: optimizer=%s, activation=%s, hidden=%s (prior cv_acc=%.3f +- %.3f)",
         best1_optimizer,
         best1_activation,
         best1_hidden_dims,
-        best1_row["cv_mean_acc"],
+        _phase1_prior["cv_mean_acc"],
+        _phase1_prior["cv_std_acc"],
     )
-
-    if args.search_mode == "phase1":
-        logger.info("search-mode=phase1: stopping after Phase 1.")
-        return 0
 
     # -------------------------------------------------------------------------
     # HP Search Phase 2: LR × WD × Batch (+ Momentum if SGD)
@@ -1229,74 +1221,40 @@ def main() -> int:
         "hidden_dims": best1_hidden_dims,
     }
 
-    logger.info("--- HP SEARCH Phase 2 (LR x WD x Batch) ---")
-    df_phase2_base = run_hp_phase(
-        phase_num=2,
-        grid=grids["phase2_base"],
-        defaults=defaults_p2,
-        X=X_train_star,
-        y=y_train_star,
-        skf=skf,
-        input_dim=input_dim,
-        args=args,
-        hp_search_dir=hp_search_dir,
-        csv_filename="phase2_base_tmp.csv",
-        logger=logger,
-        wandb_urls=wandb_urls,
-    )
-
-    best2_base = df_phase2_base.iloc[0]
-    best2_lr = float(best2_base["lr"])
-    best2_wd = float(best2_base["weight_decay"])
-    best2_bs = int(best2_base["batch_size"])
-    best2_momentum = defaults_p2["momentum"]
-
-    df_phase2_combined = df_phase2_base.copy()
-
-    if best1_optimizer == "SGD":
-        logger.info("--- HP SEARCH Phase 2b (Momentum tuning for SGD) ---")
-        defaults_p2b = {
-            **defaults_p2,
-            "lr": best2_lr,
-            "weight_decay": best2_wd,
-            "batch_size": best2_bs,
-        }
-        df_phase2b = run_hp_phase(
-            phase_num="2b",
-            grid=grids["phase2_momentum"],
-            defaults=defaults_p2b,
-            X=X_train_star,
-            y=y_train_star,
-            skf=skf,
-            input_dim=input_dim,
-            args=args,
-            hp_search_dir=hp_search_dir,
-            csv_filename="phase2b_momentum_tmp.csv",
-            logger=logger,
-            wandb_urls=wandb_urls,
-        )
-        best2_momentum = float(df_phase2b.iloc[0]["momentum"])
-        df_phase2_combined = (
-            pd.concat([df_phase2_base, df_phase2b], ignore_index=True)
-            .sort_values("cv_mean_acc", ascending=False)
-            .reset_index(drop=True)
-        )
-
-    df_phase2_combined.to_csv(
-        hp_search_dir / "phase2_optimizer_tuning.csv", index=False
-    )
     logger.info(
-        "Phase 2 best: lr=%.4f, wd=%.4f, bs=%d, momentum=%.2f -> cv_acc=%.3f",
+        "--- HP SEARCH Phase 2 SKIPPED (resume mode: using hardcoded best from prior interrupted run) ---"
+    )
+    best2_lr = 0.0005
+    best2_wd = 0.001
+    best2_bs = 32
+    best2_momentum = 0.9
+    df_phase2_combined = None
+    _phase2_prior = {
+        "lr": best2_lr,
+        "weight_decay": best2_wd,
+        "batch_size": best2_bs,
+        "momentum": best2_momentum,
+        "cv_mean_acc": 0.534,
+        "cv_std_acc": 0.090,
+        "mean_epochs_trained": 56,
+        "source": "prior interrupted full-mode run (48 combos x 10 folds = 480 runs)",
+        "phase2b_skipped_reason": "optimizer is Adam, not SGD",
+    }
+    logger.info(
+        "Phase 2 hardcoded: lr=%.4f, wd=%.4f, bs=%d, momentum=%.2f (prior cv_acc=%.3f +- %.3f)",
         best2_lr,
         best2_wd,
         best2_bs,
         best2_momentum,
-        df_phase2_base.iloc[0]["cv_mean_acc"],
+        _phase2_prior["cv_mean_acc"],
+        _phase2_prior["cv_std_acc"],
     )
 
-    if args.search_mode == "phase2":
-        logger.info("search-mode=phase2: stopping after Phase 2.")
-        return 0
+    # Provenance: persist the hardcoded Phase 1 + Phase 2 picks for traceability.
+    (hp_search_dir / "phase1_phase2_hardcoded_from_prior_run.json").write_text(
+        json.dumps({"phase1": _phase1_prior, "phase2": _phase2_prior}, indent=2),
+        encoding="utf-8",
+    )
 
     # -------------------------------------------------------------------------
     # HP Search Phase 3: Dropout × KL lambda
