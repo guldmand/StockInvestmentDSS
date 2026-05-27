@@ -283,14 +283,14 @@ Full FinRL multiseed thesis evidence run ✅ DONE / 2026-05-26 ~05:00
   - All 6 agents (A2C, DDPG, PPO, TD3, SAC, MVO) × multiseed ✅
   - Used in etape 7 demo orchestrator successfully ✅
 ↓
-EDL-A dataset builder ⬅️ NEXT (Phase B.2 — after Phase B.1)
+EDL-A dataset builder  (Phase B.2 — after Phase B.1) ✅
   - existing infrastructure: edl_action_dataset_v2.py + run_edl_action_dataset_v2_builder.py
   - build from counterfactual hindsight labels (counterfactual mode, NOT iqn_teacher)
   - exclude future outcome columns from input features
   - train/validation/test split inside PIT training period (80/20 time-ordered)
   - final PIT evaluation period kept untouched
 ↓
-Reference-aligned EDL-A training ⬅️ Phase B.3 — after EDL-A DATASET
+Reference-aligned EDL-A training Phase B.3 — after EDL-A DATASET ✅
   - existing infrastructure: run_edl_action_training_v2_smoke_test.py
   - scale up: 50 epochs (not 10 as smoke)
   - LABEL MODE = "counterfactual" (CRITICAL — not iqn_teacher!)
@@ -303,42 +303,191 @@ Reference-aligned EDL-A training ⬅️ Phase B.3 — after EDL-A DATASET
   - macro F1
   - vacuity correct vs incorrect
 ↓
-IQN + HDP + EDL-A gate ⬅️ Phase B.4 — after EDL-A VALIDATION
+IQN + HDP + EDL-A gate  Phase B.4 — after EDL-A VALIDATION ✅
   - existing infrastructure: run_edl_action_gate_end_to_end_smoke_test.py
   - uncertainty-aware decision gating
   - human-review flags
   - pass-through / reduce / hold logic
   - compare against IQN-only and IQN+HDP
 ↓
-Ablation suite ⬅️ AFTER CLEAN DIAGNOSTIC PLOTS
-  - IQN only
-  - IQN + LayerNorm
-  - IQN + HDP
-  - IQN + HDP + EDL-C
-  - IQN + HDP + EDL-A
-  - toggles for HDP on/off
-  - toggles for EDL on/off
-  - optional clean 50k only after clean 25k interpretation
-  - optional epsilon schedule ablation
+↓
+Ablation suite ⬅️ AFTER CLEAN DIAGNOSTIC PLOTS !!! NOW (OPRINDELIGE PLAN)
+- ✅ IQN only (implementeret som A1)
+- ❗ IQN + LayerNorm — IKKE separat ablation (LayerNorm er DEFAULT i alle ablations, så ingen separat sammenligning)
+- ✅ IQN + HDP (implementeret som A2)
+- ❌ IQN + HDP + EDL-C — DROPPED (EDL-C er deprecated track, vi bruger EDL-A som primary)
+- ✅ IQN + HDP + EDL-A (implementeret som A4)
+- ✅ toggles for HDP on/off (implicit via A1 vs A2 og A3 vs A4)
+- ✅ toggles for EDL on/off (implicit via A1 vs A3 og A2 vs A4)
+- ❌ optional clean 50k only after clean 25k interpretation — DROPPED til post-thesis
+- ❌ optional epsilon schedule ablation — DROPPED til post-thesis
+↓
+Ablation suite ⬅️ Phase B.5 — KERNE THESIS QUESTION  !!! NOW
+- 4-way ablation matrix:
+  - ✅ IQN only (raw iqn_chosen_action from Phase B.2 audit)
+  - ✅ IQN + HDP (hierarchical_action_type from Phase B.1)
+  - ✅ IQN + EDL-A (IQN action filtered by EDL gate, skip HDP)
+  - ✅ IQN + HDP + EDL-A (full stack from Phase B.4)
+- ✅ input data: Phase B.2 combined_with_counterfactual_labels.csv (599 rows after drop)
+- ✅ model: Phase B.3 v3 MERGED ensemble (10-fold) from MERGED folder
+- ✅ test set: same 120 rows as Phase B.4
+- ✅ ground truth: edl_a_cf_label (counterfactual labels)
+- metrics per ablation:
+  - ✅ overall accuracy vs cf_label
+  - ✅ per-class precision/recall/F1 (BUY/SELL/HOLD)
+  - ✅ confusion matrix
+  - ✅ action distribution
+  - ✅ n_modified (vs IQN-only baseline)
+  - 🆕 PLUS enriched metrics (size, gate, ticker, human review, calibration)
+- comparison plots:
+  - ✅ bar chart: acc per ablation (ablation_accuracy_comparison.png)
+  - ✅ confusion matrices (4-panel) (ablation_confusion_matrices.png)
+  - ✅ per-class accuracy comparison (ablation_per_class_metrics.png)
+  - ❗ action flow diagram (IQN → HDP → EDL pipeline) — IKKE LAVET, men 9 andre plots genereret inklusiv 5 enriched plots
+  - 🆕 PLUS 5 nye enriched plots (size, gate, ticker, calibration, human review)
+- ✅ existing infrastructure: run_iqn_vs_baseline_comparison_summary.py (REFERENCE — not directly used)
+- ✅ new file: run_phase_b5_ablation_suite.py (CREATED, ~2475 lines med enrichments)
+- ✅ output: outputs/runs/<timestamp>_d_iqn_dss_phase_b5_ablation_suite/
+- ❗ W&B logging to StockInvestmentDSS project — KODE FINDES, men kun testet med --no-wandb flag, ikke verificeret med actual W&B logging
+- DEFERRED to post-thesis (optional):
+  - ❌ clean 50k baseline — DEFERRED som planlagt
+  - ❌ epsilon schedule ablation — DEFERRED som planlagt
+  - ❌ IQN + LayerNorm separate ablation — DEFERRED (LayerNorm er default)
+  - ❌ EDL-C variant comparison — DEFERRED (EDL-A er primary)
 ↓
 ↓
-Ablation suite ⬅️ Phase B.5 — KERNE THESIS QUESTION
-  - 4-way ablation matrix:
-    - IQN only (Phase B.1 output partial)
-    - IQN + HDP (Phase B.1 output) 
-    - IQN + EDL-A (subset of B.4)
-    - IQN + HDP + EDL-A (full stack, B.4)
-  - existing infrastructure: 
-    - run_iqn_vs_baseline_comparison_summary.py
-    - run_iqn_vs_baseline_comparison_plot.py
-  - toggles via env vars: 
-    - STOCK_INVESTMENT_DSS_USE_HIERARCHICAL_POLICY=true/false
-    - STOCK_INVESTMENT_DSS_USE_EDL=true/false
-    - STOCK_INVESTMENT_DSS_EDL_VARIANT=A/B/C
-  - DEFERRED to post-thesis (optional):
-    - clean 50k baseline 
-    - epsilon schedule ablation
+Phase B.6 — SCALE-UP VALIDATION ⬅️ AFTER B.5 
+- problem identified in Phase B.4: 
+  - vacuity distribution too narrow (mean=0.31, std=0.02)
+  - confident subset accuracy not significantly higher than overall
+  - hypothesized cause: small dataset (n=479 train) + subsampled
+- goal: re-run full Phase B pipeline on LARGER dataset to validate methodology
+- scale-up strategy:
+  - use existing demo_10_new_long_2010_2026 dataset (16 years!)
+  - regenerate Phase B.1 audit WITHOUT subsampling
+  - expected: ~10x more rows (3000-6000 rows)
+  - same 10 tickers (AVGO, BA, CAT, COST, KO, LLY, MCD, ORCL, PG, WMT)
+- pipeline re-execution:
+  - Phase B.1: combined IQN+HDP audit on full timeseries
+  - Phase B.2: counterfactual labels on expanded audit
+  - Phase B.3 v3: EDL training (re-use best HPs from MERGED)
+  - Phase B.4: gate evaluation (all 4 threshold modes)
+  - Phase B.5: ablation suite (4-way matrix)
+- comparison documentation:
+  - small dataset (n=479) vs scaled (n=~5000) results
+  - did vacuity distribution widen?
+  - did confident_acc improve?
+  - did ablation effects become clearer?
+- output: outputs/runs/<timestamp>_d_iqn_dss_phase_b6_scaleup/
+- W&B group: phase-b6-scaleup-thesis
+- thesis narrative:
+  - Phase B (initial) = methodology + limitations discovered
+  - Phase B.6 (scaled) = validation + final findings
 ↓
+
+↓
+Live Portfolio Simulation Ablation ⏳ POST-SCALE-UP
+- problem identified in Phase B.5:
+  - static offline audit means HDP's portfolio-state-dependent 
+    overrides never fire
+  - all decisions evaluated with empty portfolio 
+    (cash_weight=1.0, holdings=0)
+  - HDP's BUY→HOLD logic (insufficient cash) never triggered
+  - HDP's SELL→HOLD logic (no holdings) never triggered
+  - EDL gate REDUCE_SIZE/FORCE_HOLD impact not observable in 
+    portfolio terms (only as flags)
+- goal: re-run ablation with LIVE portfolio simulation to measure 
+  REAL pipeline value (portfolio outcomes)
+- existing infrastructure (already exists in codebase):
+  - RiskAwareActionResolver (already exists)
+  - InvestorRiskProfile (defensive/balanced/aggressive — already exists)
+  - DiscreteFinRLDecisionEnv (already exists)
+  - HDP + EDL components (already built in Phase B.1–B.4)
+  - investor strategy config integration (already exists/basic)
+  - portfolio state tracking (existing audit log v1)
+- already-in-TODO dependencies:
+  - CHANGE_STRATEGY reactivation (POST-THESIS item, may need first)
+  - existing portfolio / new portfolio input (POST-THESIS item)
+- new runner: run_live_simulation_ablation.py
+- design:
+  - 2-year test period
+  - 10 stocks (or 30 for Demo30)
+  - 4-way ablation:
+    * IQN-only (RiskAwareActionResolver default size)
+    * IQN + HDP (HDP size bucket selection)
+    * IQN + EDL gate (resolver size + gate filtering)
+    * IQN + HDP + EDL gate (full pipeline)
+  - 3 investor profiles tested: defensive / balanced / aggressive
+  - Sequential decision execution (chronological order)
+  - Portfolio state tracked over time (cash, holdings, weights)
+  - HDP gets real portfolio state per decision
+- metrics per ablation × profile (12 combinations):
+  - Return % over 2-year period
+  - Sharpe / Sortino / Calmar ratios
+  - Maximum drawdown
+  - Win rate
+  - Number of trades
+  - Action distribution over time
+  - HDP override frequency (now fires!)
+  - EDL gate intervention rate
+- comparison plots:
+  - Equity curves (4 ablations × 3 profiles = 12 lines)
+  - Drawdown over time
+  - Action timeline
+  - Risk-return scatter (Sharpe vs Return)
+  - Per-stock contribution
+  - HDP override events per ablation
+  - EDL gate activity over time
+- comparison narrative:
+  - Static offline (Phase B.5) vs live simulation
+  - Shows REAL pipeline value (portfolio outcomes vs structural metrics)
+  - Investor profile sensitivity
+- output: outputs/runs/<timestamp>_d_iqn_dss_live_simulation_ablation/
+- W&B group: live-simulation-ablation
+- thesis conclusion: "Best configuration: X with returns Y, Sharpe Z 
+  for investor profile W"
+↓
+Demo_30 Mode B experiment ⏳ OPTIONAL / IF TIME
+  - Same live simulation as above but 30 stocks instead of 10
+  - Validates ablation findings on larger universe
+  - Used as final showcase demo for thesis
+↓
+
+↓
+Human-in-the-Loop Workflow PoC ⏳ POST-LIVE-SIMULATION
+- existing infrastructure:
+  - EDL gate outputs (RECOMMEND_AS_IS, REDUCE_SIZE, FORCE_HOLD, 
+    HUMAN_REVIEW, STRATEGY_REVIEW)
+  - InvestorRiskProfile + strategies
+  - Recommendation engine (already in TODO)
+- design:
+  - AUTO mode: System trades automatically when gate=RECOMMEND_AS_IS 
+    or REDUCE_SIZE
+  - PAUSE mode: System pauses decision when gate=HUMAN_REVIEW
+  - REVIEW interface: Investor reviews pending decisions:
+    * "Accept": execute as recommended
+    * "Reject": skip this decision
+    * "Modify": execute with different parameters
+    * "Other action": investor decides custom action
+  - SAFETY mode: System enforces HOLD when gate=FORCE_HOLD
+  - STRATEGY mode: System flags strategy review when gate=STRATEGY_REVIEW
+- workflow:
+  - Daily/Weekly batch of decisions
+  - Pending decisions queued for review
+  - Investor accesses dashboard (web POC or notification)
+  - Decisions reviewed, accepted/modified/rejected
+  - Execution batch processed
+- output: outputs/runs/<timestamp>_d_iqn_dss_human_in_loop_workflow/
+- thesis contribution: 
+  - "Human-in-the-loop DSS using EDL uncertainty as oversight trigger"
+  - Active learning workflow
+  - Practical deployment design
+↓
+
+
+[rest of TODO unchanged]
+
+
 Demo_5 / Demo_10 comparison summary ⬅️ REFRESH AFTER CLEAN PIPELINE
 Demo_5 / Demo_10 comparison summary ⬅️ Phase C — REFRESH AFTER ABLATION
 ↓

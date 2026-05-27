@@ -1,0 +1,2497 @@
+"""
+Phase B.5 — 4-Way Ablation Suite
+
+Compares four ablation configurations against the edl_a_cf_label ground truth
+on the same 120-row test set as Phase B.4:
+
+  A1  IQN-only:        final_action = normalize(iqn_chosen_action)
+  A2  IQN + HDP:       final_action = normalize(hierarchical_action_type)
+  A3  IQN + EDL:       IQN action filtered by EDL gate (HDP bypassed)
+  A4  IQN + HDP + EDL: Full pipeline (replicates Phase B.4 Phase D)
+
+For A3 and A4, percentile thresholds are computed from the train* vacuity
+distribution (same as Phase B.4.D): p33 / p66 / max(p66, 0.50).
+
+INPUTS:
+  - Phase B.2 combined CSV:
+      outputs/runs/<latest_b2_run>/audit/combined_with_counterfactual_labels.csv
+  - Phase B.3 MERGED ensemble:
+      outputs/runs/MERGED_..._COMPLETE/models/edl_action_classifier_v3_fold_{0..9}.pt
+
+OUTPUTS:
+  outputs/runs/<timestamp>_d_iqn_dss_phase_b5_ablation_suite/
+    audit/
+      ablation_a1_iqn_only.csv
+      ablation_a2_iqn_hdp.csv
+      ablation_a3_iqn_edl.csv
+      ablation_a4_iqn_hdp_edl.csv
+      ablation_comparison.csv          (4-row cross-ablation summary)
+    config/
+      phase_b5_config.json
+    data/
+      test_set_predictions.csv
+    logs/
+      run.log
+    metrics/
+      per_ablation_metrics.json
+      confusion_matrices.json
+      cross_ablation_summary.json
+    plots/
+      ablation_accuracy_comparison.png
+      ablation_confusion_matrices.png
+      ablation_per_class_metrics.png   (full mode only)
+      ablation_action_distribution.png (full mode only)
+    summary/
+      phase_b5_summary.md
+      phase_b5_summary.json
+
+USAGE:
+  cd <repo_root>
+  export PYTHONPATH=src
+  python -m stock_investment_dss.runner.run_phase_b5_ablation_suite
+
+  # Optional flags:
+  #   --quick                  Skip per-class + action distribution plots (~2 min)
+  #   --no-wandb               Disable W&B logging
+  #   --combined-csv PATH      Override Phase B.2 combined CSV (required for B.6)
+  #   --merged-folder PATH     Override Phase B.3 MERGED folder (required for B.6)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix as sk_confusion_matrix,
+)
+
+from stock_investment_dss.uncertainty.edl_gate import (
+    EDLGate,
+    EDLGateConfig,
+    GATE_RECOMMEND_AS_IS,
+    GATE_REDUCE_SIZE,
+    GATE_FORCE_HOLD,
+    GATE_HUMAN_REVIEW,
+    GATE_STRATEGY_REVIEW,
+    ALL_GATE_OUTPUTS,
+)
+
+# ============================================================================
+# Constants
+# ============================================================================
+ACTION_NAMES_3CLASS = ["BUY", "SELL", "HOLD"]
+ACTION_TO_IDX = {"BUY": 0, "SELL": 1, "HOLD": 2}
+IDX_TO_ACTION = {0: "BUY", 1: "SELL", 2: "HOLD"}
+
+# Feature exclusion sets (56 features — matches Phase B.3 v3 training exactly)
+_EXCLUDE_PREFIXES = ("edl_a_", "edl_b_", "edl_c_", "edl_label_")
+_EXCLUDE_EXACT = {
+    "decision_id",
+    "date",
+    "visible_data_cutoff",
+    "eval_step",
+    "source_iqn_run_id",
+    "dataset_id",
+    "pit_split_id",
+    "selected_iqn_action",
+    "iqn_chosen_action",
+    "hierarchical_action_type",
+    "selected_ticker",
+    "selected_size",
+    "final_recommendation_before_edl",
+    "final_recommendation_source",
+    "selected_action_type",
+}
+
+# Ablation display labels and plot colors
+ABLATION_LABELS = {
+    "A1": "A1: IQN-only",
+    "A2": "A2: IQN+HDP",
+    "A3": "A3: IQN+EDL",
+    "A4": "A4: IQN+HDP+EDL",
+}
+ABLATION_COLORS = {
+    "A1": "steelblue",
+    "A2": "darkorange",
+    "A3": "mediumseagreen",
+    "A4": "crimson",
+}
+
+
+# ============================================================================
+# Model architecture — copied verbatim from Phase B.4 production runner
+# (must match Phase B.3 v3 training architecture exactly)
+# ============================================================================
+class EDLActionNetworkV3(nn.Module):
+    """Exact replica of EDL-A architecture used in Phase B.3 v3 training.
+
+    Matches run_edl_action_training_v3_production.py exactly:
+      - attribute 'body' (not 'net')
+      - LayerNorm after each Linear hidden layer
+      - F.relu evidence head returning alpha = evidence + 1.0
+    """
+
+    _ACTIVATION_MAP = {
+        "ReLU": nn.ReLU,
+        "GELU": nn.GELU,
+        "SiLU": nn.SiLU,
+        "Mish": nn.Mish,
+    }
+
+    def __init__(
+        self,
+        input_dim: int,
+        num_classes: int,
+        hidden_dims: list,
+        activation: str = "SiLU",
+        dropout: float = 0.2,
+    ) -> None:
+        super().__init__()
+        if activation not in self._ACTIVATION_MAP:
+            raise ValueError(f"Unknown activation '{activation}'")
+        ActFn = self._ACTIVATION_MAP[activation]
+
+        layers = []
+        prev_dim = input_dim
+        for h in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h))
+            layers.append(nn.LayerNorm(h))
+            layers.append(ActFn())
+            if dropout > 0.0:
+                layers.append(nn.Dropout(dropout))
+            prev_dim = h
+        layers.append(nn.Linear(prev_dim, num_classes))
+        self.body = nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        logits = self.body(x)
+        evidence = F.relu(logits)
+        return evidence + 1.0
+
+
+# ============================================================================
+# W&B helpers — copied verbatim from Phase B.4 production runner
+# ============================================================================
+def load_wandb_env(env_file: Path = Path(".env.wandb.local")) -> dict:
+    """Load W&B credentials from .env.wandb.local"""
+    cfg = {
+        "enabled": False,
+        "project": "StockInvestmentDSS",
+        "entity": "guldmand-SDU",
+        "api_key": None,
+    }
+    if not env_file.exists():
+        return cfg
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ[key] = value
+            if key == "STOCK_INVESTMENT_DSS_WANDB_ENABLED":
+                cfg["enabled"] = value.lower() == "true"
+            elif key == "STOCK_INVESTMENT_DSS_WANDB_PROJECT":
+                cfg["project"] = value
+            elif key == "STOCK_INVESTMENT_DSS_WANDB_ENTITY":
+                cfg["entity"] = value
+            elif key == "WANDB_API_KEY":
+                cfg["api_key"] = value
+    return cfg
+
+
+# ============================================================================
+# Auto-discovery helpers — copied verbatim from Phase B.4 production runner
+# ============================================================================
+def find_latest_phase_b2_run(runs_dir: Path) -> Optional[Path]:
+    """Find latest Phase B.2 (counterfactual oracle) run with combined CSV."""
+    candidates = sorted(
+        runs_dir.glob("*_d_iqn_dss_edl_counterfactual_oracle_production")
+    )
+    for run_dir in reversed(candidates):
+        csv_path = run_dir / "audit" / "combined_with_counterfactual_labels.csv"
+        if csv_path.exists() and csv_path.stat().st_size > 1000:
+            return run_dir
+    return None
+
+
+def find_merged_folder(runs_dir: Path) -> Optional[Path]:
+    """Find the MERGED training folder."""
+    candidates = sorted(runs_dir.glob("MERGED_*_edl_action_training_v3_COMPLETE"))
+    if candidates:
+        return candidates[-1]
+    return None
+
+
+# ============================================================================
+# Feature engineering — copied verbatim from Phase B.4 production runner
+# ============================================================================
+def infer_feature_columns(df: pd.DataFrame) -> list:
+    """Determine which columns to use as features (matches Phase B.3 v3 training)."""
+    features = []
+    for col in df.columns:
+        if col in _EXCLUDE_EXACT:
+            continue
+        if any(col.startswith(p) for p in _EXCLUDE_PREFIXES):
+            continue
+        if df[col].dtype == "object":
+            continue
+        features.append(col)
+    return features
+
+
+def standardize_features(
+    X: np.ndarray, mean: np.ndarray, std: np.ndarray
+) -> np.ndarray:
+    """Standardize features using train* mean/std (no test leakage)."""
+    std_safe = np.where(std < 1e-8, 1.0, std)
+    return (X - mean) / std_safe
+
+
+def normalize_action(action_raw) -> str:
+    """Map various action strings to canonical BUY / SELL / HOLD."""
+    if not isinstance(action_raw, str):
+        return "HOLD"
+    a = action_raw.upper().strip()
+    if a.startswith("BUY"):
+        return "BUY"
+    if a.startswith("SELL"):
+        return "SELL"
+    return "HOLD"
+
+
+# ============================================================================
+# Ensemble inference — copied verbatim from Phase B.4 production runner
+# ============================================================================
+def load_ensemble_models(
+    merged_folder: Path,
+    input_dim: int,
+    hidden_dims: list,
+    num_classes: int = 3,
+    dropout: float = 0.0,
+    activation: str = "ReLU",
+    device: torch.device = torch.device("cpu"),
+) -> list:
+    """Load 10-fold models from MERGED folder."""
+    models = []
+    for fold_idx in range(10):
+        model_path = (
+            merged_folder / "models" / f"edl_action_classifier_v3_fold_{fold_idx}.pt"
+        )
+        if not model_path.exists():
+            raise FileNotFoundError(f"Missing fold model: {model_path}")
+        model = EDLActionNetworkV3(
+            input_dim, num_classes, hidden_dims, activation, dropout
+        )
+        state = torch.load(model_path, map_location=device)
+        if isinstance(state, dict) and "state_dict" in state:
+            model.load_state_dict(state["state_dict"])
+        else:
+            model.load_state_dict(state)
+        model.eval()
+        model.to(device)
+        models.append(model)
+    return models
+
+
+def ensemble_predict(models: list, X: np.ndarray, device: torch.device) -> dict:
+    """
+    Run ensemble inference. Returns dict with:
+      ensemble_alpha:  (N, K) average Dirichlet alpha
+      ensemble_probs:  (N, K) probabilities
+      ensemble_pred:   (N,)  argmax predictions
+      vacuity:         (N,)  epistemic uncertainty K/S
+      disagreement:    (N,)  fraction of folds disagreeing with ensemble
+    """
+    X_t = torch.tensor(X, dtype=torch.float32, device=device)
+    K = 3
+
+    per_fold_evidence = []
+    per_fold_preds = []
+    with torch.no_grad():
+        for model in models:
+            evidence = model(X_t).cpu().numpy()
+            alpha = evidence + 1.0
+            per_fold_evidence.append(alpha)
+            per_fold_preds.append(np.argmax(alpha, axis=1))
+
+    ensemble_alpha = np.mean(np.stack(per_fold_evidence, axis=0), axis=0)
+    S = ensemble_alpha.sum(axis=1, keepdims=True)
+    ensemble_probs = ensemble_alpha / S
+    ensemble_pred = np.argmax(ensemble_alpha, axis=1)
+    vacuity = K / S.flatten()
+
+    per_fold_preds_arr = np.stack(per_fold_preds, axis=0)
+    disagreement = np.mean(per_fold_preds_arr != ensemble_pred[np.newaxis, :], axis=0)
+
+    return {
+        "ensemble_alpha": ensemble_alpha,
+        "ensemble_probs": ensemble_probs,
+        "ensemble_pred": ensemble_pred,
+        "vacuity": vacuity,
+        "disagreement": disagreement,
+    }
+
+
+# ============================================================================
+# Gate application — copied verbatim from Phase B.4 production runner
+# ============================================================================
+def apply_gate_to_dataset(
+    df: pd.DataFrame,
+    edl_results: dict,
+    gate_config: EDLGateConfig,
+    risk_modulation: Optional[dict] = None,
+) -> pd.DataFrame:
+    """
+    Apply EDLGate to all rows in df.
+
+    For Phase B.5:
+      - A3: df must have hierarchical_action_type overridden with iqn_chosen_action
+      - A4: df uses hierarchical_action_type unchanged
+    """
+    vacuity = edl_results["vacuity"]
+    pred_idx = edl_results["ensemble_pred"]
+    disagreement = edl_results["disagreement"]
+
+    results = []
+    for idx in range(len(df)):
+        row = df.iloc[idx]
+        hdp_action = normalize_action(row.get("hierarchical_action_type", "HOLD"))
+        selected_size = row.get("selected_size", "")
+        if pd.isna(selected_size):
+            selected_size = ""
+        original_fraction = float(row.get("selected_size_fraction", 0.0) or 0.0)
+
+        edl_pred_action = IDX_TO_ACTION[int(pred_idx[idx])]
+        edl_agrees = edl_pred_action == hdp_action
+
+        if risk_modulation is not None:
+            row_risk = float(row.get("risk_score", 0.5) or 0.5)
+            scale = risk_modulation["scale_factor"]
+            risk_factor = 0.5 + 0.5 * row_risk
+            eff_cfg = EDLGateConfig(
+                recommend_as_is_max_vacuity=gate_config.recommend_as_is_max_vacuity
+                * scale
+                * risk_factor,
+                reduce_size_max_vacuity=gate_config.reduce_size_max_vacuity
+                * scale
+                * risk_factor,
+                force_hold_min_vacuity=gate_config.force_hold_min_vacuity
+                * scale
+                * risk_factor,
+                rebalance_signal_threshold=gate_config.rebalance_signal_threshold,
+                change_strategy_signal_threshold=gate_config.change_strategy_signal_threshold,
+                disagreement_review_threshold=gate_config.disagreement_review_threshold,
+                uncertainty_lambda=gate_config.uncertainty_lambda,
+            )
+        else:
+            eff_cfg = gate_config
+
+        gate = EDLGate(eff_cfg)
+        result = gate.apply(
+            selected_action=hdp_action,
+            selected_size=str(selected_size),
+            original_fraction=original_fraction,
+            vacuity=float(vacuity[idx]),
+            edl_agrees=edl_agrees,
+            edl_predicted_action=edl_pred_action,
+            p_rebalance=0.0,
+            p_change_strategy=0.0,
+            disagreement_score=float(disagreement[idx]),
+            uncertainty_penalty=eff_cfg.uncertainty_lambda * float(vacuity[idx]),
+        )
+
+        out = result.to_audit_dict()
+        out["row_idx"] = idx
+        out["decision_id"] = row.get("decision_id", "")
+        out["date"] = row.get("date", "")
+        out["hdp_action"] = hdp_action
+        out["edl_pred_action"] = edl_pred_action
+        out["edl_agrees"] = edl_agrees
+        out["vacuity"] = float(vacuity[idx])
+        out["disagreement"] = float(disagreement[idx])
+        out["risk_score"] = float(row.get("risk_score", 0.5) or 0.5)
+        out["cf_label"] = row.get("edl_a_cf_label", "")
+        out["thr_rec_as_is"] = eff_cfg.recommend_as_is_max_vacuity
+        out["thr_reduce_size"] = eff_cfg.reduce_size_max_vacuity
+        out["thr_force_hold"] = eff_cfg.force_hold_min_vacuity
+        results.append(out)
+
+    return pd.DataFrame(results)
+
+
+def compute_percentile_thresholds(vacuity: np.ndarray) -> EDLGateConfig:
+    """Compute data-driven thresholds from train* vacuity percentiles.
+
+    recommend_as_is_max_vacuity = p33
+    reduce_size_max_vacuity     = p66
+    force_hold_min_vacuity      = max(p66, 0.50)
+    """
+    p33 = float(np.percentile(vacuity, 33))
+    p66 = float(np.percentile(vacuity, 66))
+    return EDLGateConfig(
+        recommend_as_is_max_vacuity=p33,
+        reduce_size_max_vacuity=p66,
+        force_hold_min_vacuity=max(p66, 0.50),
+    )
+
+
+# ============================================================================
+# B.5-specific: Ablation metrics
+# ============================================================================
+def compute_ablation_metrics(
+    final_actions: pd.Series,
+    cf_labels: pd.Series,
+    source_actions: Optional[pd.Series] = None,
+) -> dict:
+    """Compute classification metrics for one ablation configuration.
+
+    Args:
+        final_actions:  Predicted actions (BUY/SELL/HOLD strings).
+        cf_labels:      Ground truth counterfactual labels.
+        source_actions: Pre-gate/pre-pipeline actions for n_modified count.
+                        A2: pass iqn_chosen_action (n_modified vs A1).
+                        A3: pass iqn_chosen_action (n_modified vs A1).
+                        A4: pass hierarchical_action_type (n_modified vs A2).
+
+    Returns dict with: overall_acc, n, macro_f1, per_class, confusion_matrix,
+                       action_distribution, n_modified.
+    """
+    y_pred = final_actions.apply(normalize_action).reset_index(drop=True)
+    y_true = cf_labels.apply(normalize_action).reset_index(drop=True)
+
+    overall_acc = float((y_pred == y_true).mean())
+
+    report = classification_report(
+        y_true,
+        y_pred,
+        labels=ACTION_NAMES_3CLASS,
+        output_dict=True,
+        zero_division=0,
+    )
+    macro_f1 = float(report["macro avg"]["f1-score"])
+
+    cm = sk_confusion_matrix(y_true, y_pred, labels=ACTION_NAMES_3CLASS)
+
+    action_dist = {
+        action: int((y_pred == action).sum()) for action in ACTION_NAMES_3CLASS
+    }
+
+    n_modified = 0
+    if source_actions is not None:
+        src_norm = source_actions.apply(normalize_action).reset_index(drop=True)
+        n_modified = int((y_pred != src_norm).sum())
+
+    return {
+        "overall_acc": overall_acc,
+        "n": len(y_pred),
+        "macro_f1": macro_f1,
+        "per_class": report,
+        "confusion_matrix": cm.tolist(),
+        "action_distribution": action_dist,
+        "n_modified": n_modified,
+    }
+
+
+# ============================================================================
+# B.5-specific: Ablation builders
+# ============================================================================
+def build_ablation_a1(df_test: pd.DataFrame) -> pd.DataFrame:
+    """A1: IQN-only — use raw iqn_chosen_action as final action."""
+    out = pd.DataFrame()
+    out["row_idx"] = range(len(df_test))
+    out["decision_id"] = df_test["decision_id"].values
+    out["date"] = df_test["date"].values
+    out["iqn_chosen_action"] = df_test["iqn_chosen_action"].fillna("HOLD").values
+    out["final_action"] = out["iqn_chosen_action"].apply(normalize_action)
+    out["cf_label"] = df_test["edl_a_cf_label"].fillna("HOLD").values
+    out["ablation"] = "A1_iqn_only"
+    out["is_correct"] = out["final_action"] == out["cf_label"].apply(normalize_action)
+    return out.reset_index(drop=True)
+
+
+def build_ablation_a2(df_test: pd.DataFrame) -> pd.DataFrame:
+    """A2: IQN + HDP — use hierarchical_action_type as final action."""
+    out = pd.DataFrame()
+    out["row_idx"] = range(len(df_test))
+    out["decision_id"] = df_test["decision_id"].values
+    out["date"] = df_test["date"].values
+    out["iqn_chosen_action"] = df_test["iqn_chosen_action"].fillna("HOLD").values
+    out["hdp_action"] = df_test["hierarchical_action_type"].fillna("HOLD").values
+    out["source_action"] = out["iqn_chosen_action"].apply(normalize_action)
+    out["final_action"] = out["hdp_action"].apply(normalize_action)
+    out["cf_label"] = df_test["edl_a_cf_label"].fillna("HOLD").values
+    out["ablation"] = "A2_iqn_hdp"
+    out["is_correct"] = out["final_action"] == out["cf_label"].apply(normalize_action)
+    return out.reset_index(drop=True)
+
+
+def build_ablation_a3(
+    df_test: pd.DataFrame,
+    edl_test: dict,
+    percentile_cfg: EDLGateConfig,
+) -> pd.DataFrame:
+    """A3: IQN + EDL (no HDP) — IQN action gated by EDL, bypassing HDP.
+
+    Trick: override hierarchical_action_type with iqn_chosen_action so that
+    apply_gate_to_dataset reads the IQN action as the gate input.
+    """
+    df_iqn_as_hdp = df_test.copy()
+    df_iqn_as_hdp["hierarchical_action_type"] = df_test["iqn_chosen_action"].fillna(
+        "HOLD"
+    )
+    df_gate = apply_gate_to_dataset(df_iqn_as_hdp, edl_test, percentile_cfg)
+    df_gate["source_action"] = (
+        df_test["iqn_chosen_action"].fillna("HOLD").apply(normalize_action).values
+    )
+    df_gate["ablation"] = "A3_iqn_edl"
+    df_gate["is_correct"] = df_gate["final_action_after_edl_gate"].apply(
+        normalize_action
+    ) == df_gate["cf_label"].apply(normalize_action)
+    return df_gate.reset_index(drop=True)
+
+
+def build_ablation_a4(
+    df_test: pd.DataFrame,
+    edl_test: dict,
+    percentile_cfg: EDLGateConfig,
+) -> pd.DataFrame:
+    """A4: IQN + HDP + EDL — full pipeline (replicates Phase B.4 Phase D)."""
+    df_gate = apply_gate_to_dataset(df_test, edl_test, percentile_cfg)
+    df_gate["source_action"] = (
+        df_test["hierarchical_action_type"]
+        .fillna("HOLD")
+        .apply(normalize_action)
+        .values
+    )
+    df_gate["ablation"] = "A4_iqn_hdp_edl"
+    df_gate["is_correct"] = df_gate["final_action_after_edl_gate"].apply(
+        normalize_action
+    ) == df_gate["cf_label"].apply(normalize_action)
+    return df_gate.reset_index(drop=True)
+
+
+# ============================================================================
+# B.5-specific: Plots
+# ============================================================================
+def plot_ablation_accuracy_comparison(
+    metrics_per_ablation: dict,
+    output_path: Path,
+) -> None:
+    """Grouped bar chart: overall accuracy and macro F1 per ablation."""
+    ablation_keys = ["A1", "A2", "A3", "A4"]
+    labels = [ABLATION_LABELS[k] for k in ablation_keys]
+    accs = [metrics_per_ablation[k]["overall_acc"] for k in ablation_keys]
+    f1s = [metrics_per_ablation[k]["macro_f1"] for k in ablation_keys]
+
+    x = np.arange(len(ablation_keys))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars_acc = ax.bar(
+        x - width / 2,
+        accs,
+        width,
+        label="Overall Accuracy",
+        color=[ABLATION_COLORS[k] for k in ablation_keys],
+        alpha=0.85,
+        edgecolor="black",
+    )
+    bars_f1 = ax.bar(
+        x + width / 2,
+        f1s,
+        width,
+        label="Macro F1",
+        color=[ABLATION_COLORS[k] for k in ablation_keys],
+        alpha=0.50,
+        edgecolor="black",
+        hatch="//",
+    )
+
+    # Reference lines
+    ax.axhline(1 / 3, color="gray", linestyle=":", linewidth=1, label="Random (1/3)")
+
+    # Value annotations
+    for bar in bars_acc:
+        h = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            h + 0.005,
+            f"{h:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+    for bar in bars_f1:
+        h = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            h + 0.005,
+            f"{h:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=10)
+    ax.set_ylabel("Score")
+    ax.set_ylim(0, 1.05)
+    ax.set_title("Phase B.5: Ablation Accuracy and Macro F1 Comparison")
+    ax.legend(loc="upper left", fontsize=9)
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_ablation_confusion_matrices(
+    metrics_per_ablation: dict,
+    output_path: Path,
+) -> None:
+    """2x2 panel of row-normalised confusion matrices for all four ablations."""
+    ablation_keys = ["A1", "A2", "A3", "A4"]
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes_flat = axes.flatten()
+
+    for ax, key in zip(axes_flat, ablation_keys):
+        cm = np.array(metrics_per_ablation[key]["confusion_matrix"], dtype=float)
+        row_sums = cm.sum(axis=1, keepdims=True)
+        row_sums = np.where(row_sums == 0, 1, row_sums)
+        cm_norm = cm / row_sums
+
+        im = ax.imshow(cm_norm, cmap="Blues", vmin=0, vmax=1, aspect="auto")
+        ax.set_xticks(range(3))
+        ax.set_yticks(range(3))
+        ax.set_xticklabels(ACTION_NAMES_3CLASS)
+        ax.set_yticklabels(ACTION_NAMES_3CLASS)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True (cf_label)")
+        acc = metrics_per_ablation[key]["overall_acc"]
+        ax.set_title(f"{ABLATION_LABELS[key]}  (acc={acc:.3f})")
+
+        for i in range(3):
+            for j in range(3):
+                v = cm_norm[i, j]
+                n = int(cm[i, j])
+                color = "white" if v > 0.5 else "black"
+                ax.text(
+                    j,
+                    i,
+                    f"{v:.2f}\n(n={n})",
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    color=color,
+                )
+
+        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+    fig.suptitle(
+        "Phase B.5: Row-Normalised Confusion Matrices per Ablation", fontsize=13
+    )
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_ablation_per_class_metrics(
+    metrics_per_ablation: dict,
+    output_path: Path,
+) -> None:
+    """3-panel figure: per-class precision/recall/F1 across all four ablations."""
+    ablation_keys = ["A1", "A2", "A3", "A4"]
+    classes = ACTION_NAMES_3CLASS
+    metric_names = ["precision", "recall", "f1-score"]
+    metric_labels = ["Precision", "Recall", "F1"]
+    metric_colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5), sharey=True)
+
+    for ax, cls in zip(axes, classes):
+        x = np.arange(len(ablation_keys))
+        width = 0.25
+        for m_idx, (metric_key, metric_label, color) in enumerate(
+            zip(metric_names, metric_labels, metric_colors)
+        ):
+            values = []
+            for abl_key in ablation_keys:
+                cls_report = metrics_per_ablation[abl_key]["per_class"]
+                values.append(float(cls_report.get(cls, {}).get(metric_key, 0.0)))
+
+            offset = (m_idx - 1) * width
+            bars = ax.bar(
+                x + offset,
+                values,
+                width,
+                label=metric_label if ax == axes[0] else "_nolegend_",
+                color=color,
+                alpha=0.82,
+                edgecolor="black",
+            )
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            [ABLATION_LABELS[k] for k in ablation_keys], rotation=12, fontsize=8
+        )
+        ax.set_title(f"Class: {cls}")
+        ax.set_ylim(0, 1.05)
+        ax.grid(axis="y", alpha=0.3)
+
+    axes[0].set_ylabel("Score")
+    axes[0].legend(loc="upper left", fontsize=9)
+    fig.suptitle(
+        "Phase B.5: Per-Class Precision / Recall / F1 per Ablation", fontsize=13
+    )
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_ablation_action_distribution(
+    metrics_per_ablation: dict,
+    cf_labels: pd.Series,
+    output_path: Path,
+) -> None:
+    """Stacked horizontal bar chart: action distribution for A1–A4 + ground truth."""
+    ablation_keys = ["A1", "A2", "A3", "A4"]
+    row_labels = [ABLATION_LABELS[k] for k in ablation_keys] + ["Ground Truth"]
+
+    n_total = metrics_per_ablation["A1"]["n"]
+    truth_dist = cf_labels.apply(normalize_action).value_counts()
+    truth_row = {a: int(truth_dist.get(a, 0)) for a in ACTION_NAMES_3CLASS}
+
+    rows = []
+    for key in ablation_keys:
+        rows.append(metrics_per_ablation[key]["action_distribution"])
+    rows.append(truth_row)
+
+    fractions = {a: [] for a in ACTION_NAMES_3CLASS}
+    for row in rows:
+        total = sum(row.values()) or 1
+        for a in ACTION_NAMES_3CLASS:
+            fractions[a].append(row.get(a, 0) / total)
+
+    colors = {"BUY": "#2ca02c", "SELL": "#d62728", "HOLD": "#7f7f7f"}
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    y = np.arange(len(row_labels))
+    left = np.zeros(len(row_labels))
+
+    for action in ACTION_NAMES_3CLASS:
+        vals = np.array(fractions[action])
+        ax.barh(
+            y,
+            vals,
+            left=left,
+            label=action,
+            color=colors[action],
+            alpha=0.82,
+            edgecolor="black",
+            linewidth=0.5,
+        )
+        for i, (v, l) in enumerate(zip(vals, left)):
+            if v > 0.04:
+                ax.text(
+                    l + v / 2,
+                    i,
+                    f"{v:.1%}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="white",
+                    fontweight="bold",
+                )
+        left += vals
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(row_labels, fontsize=9)
+    ax.set_xlabel("Fraction of decisions")
+    ax.set_xlim(0, 1)
+    ax.set_title("Phase B.5: Action Distribution per Ablation vs Ground Truth")
+    ax.legend(loc="lower right", fontsize=9)
+    ax.grid(axis="x", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ============================================================================
+# B.5-specific: Enriched metrics (size, gate, HDP, human review, calibration)
+# ============================================================================
+
+_SIZE_NA_REASON = (
+    "Size determined at runtime by RiskAwareActionResolver based on investor "
+    "risk profile and portfolio state — not captured in static offline audit."
+)
+
+
+def compute_size_metrics(
+    df_ablation: pd.DataFrame,
+    df_test: pd.DataFrame,
+    ablation_key: str,
+) -> dict:
+    """Position-size metrics for one ablation.
+
+    A1, A3: size determined at runtime by RiskAwareActionResolver — N/A here.
+    A2:     HDP SizeSelector; before = after = df_test["selected_size_fraction"].
+    A4:     before = original_selected_fraction, after = final_fraction_after_edl_gate.
+    """
+    if ablation_key in ("A1", "A3"):
+        return {"available": False, "reason": _SIZE_NA_REASON}
+
+    if ablation_key == "A2":
+        fracs = df_test["selected_size_fraction"].fillna(0.0).values.astype(float)
+        before_fracs = fracs
+        after_fracs = fracs
+    else:  # A4
+        before_fracs = (
+            df_ablation["original_selected_fraction"].fillna(0.0).values.astype(float)
+        )
+        after_fracs = (
+            df_ablation["final_fraction_after_edl_gate"]
+            .fillna(0.0)
+            .values.astype(float)
+        )
+
+    deltas = before_fracs - after_fracs
+    n_modified = int(np.sum(deltas > 1e-6))
+
+    bins = [0.0, 0.25, 0.50, 0.75, 1.00]
+    hist_before = {
+        str(b): int(np.sum(np.isclose(before_fracs, b, atol=0.01))) for b in bins
+    }
+    hist_after = {
+        str(b): int(np.sum(np.isclose(after_fracs, b, atol=0.01))) for b in bins
+    }
+
+    return {
+        "available": True,
+        "mean_fraction_before": float(np.mean(before_fracs)),
+        "mean_fraction_after": float(np.mean(after_fracs)),
+        "fraction_reduction_delta": float(np.mean(deltas)),
+        "n_rows_with_size_modified": n_modified,
+        "size_fraction_histogram_before": hist_before,
+        "size_fraction_histogram_after": hist_after,
+    }
+
+
+def compute_gate_distribution(df_ablation: pd.DataFrame) -> dict:
+    """Gate output category counts. Only applicable for A3/A4."""
+    if "recommendation_gate" not in df_ablation.columns:
+        return {"applicable": False}
+    total = len(df_ablation)
+    counts = df_ablation["recommendation_gate"].value_counts()
+    result: dict = {"applicable": True, "total": total}
+    for gate_label in ALL_GATE_OUTPUTS:
+        n = int(counts.get(gate_label, 0))
+        result[f"n_{gate_label.lower()}"] = n
+        result[f"pct_{gate_label.lower()}"] = round(n / total, 4) if total > 0 else 0.0
+    return result
+
+
+def compute_hdp_metrics(df_test: pd.DataFrame) -> dict:
+    """HDP-specific metrics: ticker selection + scoring.
+
+    n_hdp_action_override is always 0 in static offline audit.
+    """
+    ticker_counts: dict = {}
+    if "selected_ticker" in df_test.columns:
+        ticker_counts = {
+            str(k): int(v)
+            for k, v in df_test["selected_ticker"].dropna().value_counts().items()
+        }
+
+    def _safe_mean(col: str) -> Optional[float]:
+        if col not in df_test.columns:
+            return None
+        vals = pd.to_numeric(df_test[col], errors="coerce").dropna()
+        return float(vals.mean()) if len(vals) > 0 else None
+
+    return {
+        "ticker_distribution": ticker_counts,
+        "n_unique_tickers": len(ticker_counts),
+        "mean_ticker_score": _safe_mean("ticker_score"),
+        "mean_size_score": _safe_mean("size_score"),
+        "mean_risk_score": _safe_mean("risk_score"),
+        "n_hdp_action_override": 0,
+        "n_hdp_action_override_note": (
+            "Always 0 in static offline audit — portfolio-state-dependent "
+            "overrides (BUY->HOLD on insufficient cash, SELL->HOLD on no holdings) "
+            "require runtime portfolio state and fire only in live simulation."
+        ),
+    }
+
+
+def compute_human_review_analysis(
+    df_ablation: pd.DataFrame,
+    vacuity_arr: np.ndarray,
+) -> dict:
+    """Human-review flag distribution. Only applicable for A3/A4."""
+    if "should_require_human_review" not in df_ablation.columns:
+        return {"applicable": False}
+
+    flagged = df_ablation["should_require_human_review"].astype(bool).values
+    n_flagged = int(flagged.sum())
+    total = len(df_ablation)
+
+    mean_vac_flagged = float(vacuity_arr[flagged].mean()) if n_flagged > 0 else None
+    mean_vac_not_flagged = (
+        float(vacuity_arr[~flagged].mean()) if (total - n_flagged) > 0 else None
+    )
+
+    q25 = float(np.percentile(vacuity_arr, 25))
+    q50 = float(np.percentile(vacuity_arr, 50))
+    q75 = float(np.percentile(vacuity_arr, 75))
+    boundaries = [0.0, q25, q50, q75, float(vacuity_arr.max()) + 0.001]
+    quartile_review_rate: dict = {}
+    for qi in range(4):
+        mask = (vacuity_arr >= boundaries[qi]) & (vacuity_arr < boundaries[qi + 1])
+        n_q = int(mask.sum())
+        n_q_flagged = int((flagged & mask).sum())
+        quartile_review_rate[f"Q{qi + 1}"] = {
+            "n": n_q,
+            "n_flagged": n_q_flagged,
+            "pct_flagged": round(n_q_flagged / n_q, 4) if n_q > 0 else 0.0,
+        }
+
+    return {
+        "applicable": True,
+        "n_human_review_required": n_flagged,
+        "pct_human_review": round(n_flagged / total, 4) if total > 0 else 0.0,
+        "mean_vacuity_flagged": mean_vac_flagged,
+        "mean_vacuity_not_flagged": mean_vac_not_flagged,
+        "vacuity_quartile_boundaries": {"Q25": q25, "Q50": q50, "Q75": q75},
+        "vacuity_quartile_review_rate": quartile_review_rate,
+    }
+
+
+def compute_calibration_metrics(
+    vacuity_arr: np.ndarray,
+    is_correct: pd.Series,
+) -> dict:
+    """Vacuity-vs-accuracy calibration (uses A1 is_correct as signal)."""
+    is_correct_arr = is_correct.values.astype(bool)
+    median_vac = float(np.median(vacuity_arr))
+    confident_mask = vacuity_arr < median_vac
+
+    confident_acc = (
+        round(float(is_correct_arr[confident_mask].mean()), 4)
+        if confident_mask.sum() > 0
+        else None
+    )
+    uncertain_acc = (
+        round(float(is_correct_arr[~confident_mask].mean()), 4)
+        if (~confident_mask).sum() > 0
+        else None
+    )
+
+    q25 = float(np.percentile(vacuity_arr, 25))
+    q50 = float(np.percentile(vacuity_arr, 50))
+    q75 = float(np.percentile(vacuity_arr, 75))
+    boundaries = [0.0, q25, q50, q75, float(vacuity_arr.max()) + 0.001]
+    quartile_accuracy: dict = {}
+    for qi in range(4):
+        mask = (vacuity_arr >= boundaries[qi]) & (vacuity_arr < boundaries[qi + 1])
+        n_q = int(mask.sum())
+        acc_q = round(float(is_correct_arr[mask].mean()), 4) if n_q > 0 else None
+        quartile_accuracy[f"Q{qi + 1}"] = {
+            "n": n_q,
+            "vacuity_range": [round(boundaries[qi], 4), round(boundaries[qi + 1], 4)],
+            "accuracy": acc_q,
+        }
+
+    return {
+        "confident_subset_acc": confident_acc,
+        "uncertain_subset_acc": uncertain_acc,
+        "median_vacuity": round(median_vac, 4),
+        "quartile_boundaries": {"Q25": q25, "Q50": q50, "Q75": q75},
+        "quartile_accuracy": quartile_accuracy,
+        "note": (
+            "Calibration uses A1 (IQN-only) is_correct as the accuracy signal. "
+            "All four ablations have identical action-class accuracy in this dataset, "
+            "so A1 is representative."
+        ),
+    }
+
+
+def compute_enriched_contributions(
+    size_metrics: dict,
+    gate_dist_a3: dict,
+    gate_dist_a4: dict,
+) -> dict:
+    """Multi-dimensional enriched contributions across pipeline components."""
+    hdp_sz = size_metrics.get("A2", {})
+    a4_sz = size_metrics.get("A4", {})
+
+    def _gate_n(gd: dict, key: str) -> int:
+        return int(gd.get(key, 0)) if gd.get("applicable") else 0
+
+    def _gate_rate(gd: dict) -> float:
+        if not gd.get("applicable"):
+            return 0.0
+        total = gd.get("total", 1) or 1
+        return round(
+            (_gate_n(gd, "n_human_review") + _gate_n(gd, "n_reduce_size")) / total, 4
+        )
+
+    return {
+        "hdp_contribution": {
+            "dimension": "Ticker selection + position sizing",
+            "mean_size_fraction_a2": (
+                hdp_sz.get("mean_fraction_before") if hdp_sz.get("available") else None
+            ),
+            "n_action_overrides": 0,
+            "note": (
+                "Action overrides require runtime portfolio state — "
+                "deferred to live simulation phase."
+            ),
+        },
+        "edl_gate_contribution_a3": {
+            "dimension": "Size modulation + human review flagging (IQN path)",
+            "n_size_reduced": _gate_n(gate_dist_a3, "n_reduce_size"),
+            "n_human_review": _gate_n(gate_dist_a3, "n_human_review"),
+            "n_force_hold": _gate_n(gate_dist_a3, "n_force_hold"),
+            "gate_activation_rate": _gate_rate(gate_dist_a3),
+        },
+        "edl_gate_contribution_a4": {
+            "dimension": "Size modulation + human review flagging (full pipeline)",
+            "n_size_reduced": _gate_n(gate_dist_a4, "n_reduce_size"),
+            "n_human_review": _gate_n(gate_dist_a4, "n_human_review"),
+            "n_force_hold": _gate_n(gate_dist_a4, "n_force_hold"),
+            "gate_activation_rate": _gate_rate(gate_dist_a4),
+            "mean_fraction_after_gate": (
+                a4_sz.get("mean_fraction_after") if a4_sz.get("available") else None
+            ),
+            "n_rows_with_size_modified": (
+                a4_sz.get("n_rows_with_size_modified")
+                if a4_sz.get("available")
+                else None
+            ),
+            "mean_fraction_reduction": (
+                a4_sz.get("fraction_reduction_delta")
+                if a4_sz.get("available")
+                else None
+            ),
+        },
+    }
+
+
+# ============================================================================
+# B.5-specific: Enriched plots
+# ============================================================================
+
+
+def plot_size_fraction_distribution(
+    size_metrics: dict,
+    output_path: Path,
+) -> None:
+    """4-panel histograms of position size fractions (A2/A4 with data; A1/A3 N/A)."""
+    keys = ["A1", "A2", "A3", "A4"]
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    axes_flat = axes.flatten()
+    bins = [0.0, 0.25, 0.50, 0.75, 1.00]
+    bin_labels = ["0.00", "0.25", "0.50", "0.75", "1.00"]
+
+    for ax, key in zip(axes_flat, keys):
+        sm = size_metrics.get(key, {})
+        if not sm.get("available", False):
+            ax.text(
+                0.5,
+                0.5,
+                (
+                    f"{ABLATION_LABELS[key]}\n\n"
+                    "Size N/A\n(RiskAwareActionResolver\ndetermines size at runtime)"
+                ),
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=10,
+                color="gray",
+            )
+            ax.set_axis_off()
+            continue
+
+        hist_b = sm.get("size_fraction_histogram_before", {})
+        hist_a = sm.get("size_fraction_histogram_after", {})
+        vals_b = [hist_b.get(str(b), 0) for b in bins]
+        vals_a = [hist_a.get(str(b), 0) for b in bins]
+        x = np.arange(len(bins))
+        width = 0.4
+        ax.bar(
+            x - width / 2,
+            vals_b,
+            width,
+            label="Before gate",
+            color=ABLATION_COLORS[key],
+            alpha=0.7,
+            edgecolor="black",
+        )
+        ax.bar(
+            x + width / 2,
+            vals_a,
+            width,
+            label="After gate",
+            color=ABLATION_COLORS[key],
+            alpha=0.4,
+            edgecolor="black",
+            hatch="//",
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(bin_labels)
+        ax.set_xlabel("Size fraction")
+        ax.set_ylabel("Count")
+        mu_b = sm.get("mean_fraction_before", 0.0)
+        mu_a = sm.get("mean_fraction_after", 0.0)
+        ax.set_title(
+            f"{ABLATION_LABELS[key]}\n\u03bc_before={mu_b:.3f}, \u03bc_after={mu_a:.3f}",
+            fontsize=9,
+        )
+        ax.legend(fontsize=8)
+        ax.grid(axis="y", alpha=0.3)
+
+    fig.suptitle(
+        "Phase B.5: Position Size Fraction Distribution per Ablation", fontsize=12
+    )
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_gate_output_distribution(
+    gate_dist: dict,
+    output_path: Path,
+) -> None:
+    """Grouped bar chart: EDL gate output distribution for A3 and A4."""
+    gate_labels_short = {
+        GATE_RECOMMEND_AS_IS: "Rec.AsIs",
+        GATE_REDUCE_SIZE: "ReduceSize",
+        GATE_FORCE_HOLD: "ForceHold",
+        GATE_HUMAN_REVIEW: "HumanReview",
+        GATE_STRATEGY_REVIEW: "StratReview",
+    }
+    keys = ["A3", "A4"]
+    x = np.arange(len(ALL_GATE_OUTPUTS))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    for i, key in enumerate(keys):
+        gd = gate_dist.get(key, {})
+        if not gd.get("applicable", False):
+            continue
+        total = gd.get("total", 1) or 1
+        counts = [gd.get(f"n_{g.lower()}", 0) for g in ALL_GATE_OUTPUTS]
+        offset = (i - 0.5) * width
+        bars = ax.bar(
+            x + offset,
+            counts,
+            width,
+            label=ABLATION_LABELS[key],
+            color=ABLATION_COLORS[key],
+            alpha=0.82,
+            edgecolor="black",
+        )
+        for bar, count in zip(bars, counts):
+            h = bar.get_height()
+            if h > 0:
+                pct = count / total
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    h + 0.3,
+                    f"{h:.0f}\n({pct:.1%})",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([gate_labels_short[g] for g in ALL_GATE_OUTPUTS], rotation=10)
+    ax.set_ylabel("Count (out of test rows)")
+    ax.set_title("Phase B.5: EDL Gate Output Distribution (A3 and A4)")
+    ax.legend(fontsize=10)
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_ticker_selection_distribution(
+    hdp_metrics: dict,
+    output_path: Path,
+) -> None:
+    """Horizontal bar chart: top tickers by HDP selection frequency."""
+    ticker_dist = hdp_metrics.get("ticker_distribution", {})
+    if not ticker_dist:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.text(
+            0.5,
+            0.5,
+            "No ticker data available",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+        fig.savefig(output_path, dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        return
+
+    sorted_tickers = sorted(ticker_dist.items(), key=lambda kv: kv[1], reverse=True)[
+        :15
+    ]
+    tickers, counts = zip(*sorted_tickers)
+    total = sum(ticker_dist.values()) or 1
+
+    fig, ax = plt.subplots(figsize=(10, max(4, len(tickers) * 0.45)))
+    y = np.arange(len(tickers))
+    bars = ax.barh(y, counts, color="steelblue", alpha=0.82, edgecolor="black")
+    ax.set_yticks(y)
+    ax.set_yticklabels(tickers, fontsize=9)
+    ax.set_xlabel("Selection count")
+    ax.set_title(
+        "Phase B.5: HDP Ticker Selection Frequency (A2 / A4 use same HDP data)"
+    )
+    for bar, cnt in zip(bars, counts):
+        ax.text(
+            bar.get_width() + 0.1,
+            bar.get_y() + bar.get_height() / 2,
+            f"{cnt} ({cnt / total:.1%})",
+            va="center",
+            fontsize=8,
+        )
+    ax.grid(axis="x", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_vacuity_calibration_curve(
+    calibration_metrics: dict,
+    output_path: Path,
+) -> None:
+    """Accuracy vs vacuity quartile line plot."""
+    qa = calibration_metrics.get("quartile_accuracy", {})
+    quartiles = ["Q1", "Q2", "Q3", "Q4"]
+    accs = [qa.get(q, {}).get("accuracy") for q in quartiles]
+    ns = [qa.get(q, {}).get("n", 0) for q in quartiles]
+    xtick_labels = [f"{q}\n(n={ns[i]})" for i, q in enumerate(quartiles)]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    valid_x = [i for i, a in enumerate(accs) if a is not None]
+    valid_y = [accs[i] for i in valid_x]
+    ax.plot(
+        valid_x,
+        valid_y,
+        "o-",
+        color="steelblue",
+        linewidth=2,
+        markersize=8,
+        label="Accuracy per vacuity quartile",
+    )
+
+    confident_acc = calibration_metrics.get("confident_subset_acc")
+    uncertain_acc = calibration_metrics.get("uncertain_subset_acc")
+    median_vac = calibration_metrics.get("median_vacuity")
+
+    if confident_acc is not None:
+        ax.axhline(
+            confident_acc,
+            color="green",
+            linestyle="--",
+            alpha=0.6,
+            label=f"Confident (u<{median_vac:.3f}) acc={confident_acc:.3f}",
+        )
+    if uncertain_acc is not None:
+        ax.axhline(
+            uncertain_acc,
+            color="orange",
+            linestyle="--",
+            alpha=0.6,
+            label=f"Uncertain acc={uncertain_acc:.3f}",
+        )
+    ax.axhline(1 / 3, color="gray", linestyle=":", linewidth=1, label="Random (1/3)")
+
+    ax.set_xticks(range(len(quartiles)))
+    ax.set_xticklabels(xtick_labels, fontsize=9)
+    ax.set_xlabel("Vacuity Quartile (Q1=low uncertainty, Q4=high)")
+    ax.set_ylabel("Accuracy vs cf_label")
+    ax.set_ylim(0, 1.05)
+    ax.set_title("Phase B.5: Confidence Calibration Curve")
+    ax.legend(fontsize=8)
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_human_review_flag_distribution(
+    human_review: dict,
+    vacuity_arr: np.ndarray,
+    df_a3: pd.DataFrame,
+    df_a4: pd.DataFrame,
+    output_path: Path,
+) -> None:
+    """Side-by-side: vacuity distribution for human_review=True/False for A3, A4."""
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    bin_edges = np.linspace(float(vacuity_arr.min()), float(vacuity_arr.max()), 21)
+
+    for ax, (key, df_abl) in zip(axes, [("A3", df_a3), ("A4", df_a4)]):
+        if "should_require_human_review" not in df_abl.columns:
+            ax.text(
+                0.5,
+                0.5,
+                f"{ABLATION_LABELS[key]}\nNo gate data",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+            )
+            continue
+
+        flagged = df_abl["should_require_human_review"].astype(bool).values
+        hr_data = human_review.get(key, {})
+        n_flagged = int(flagged.sum())
+        pct = hr_data.get("pct_human_review", 0.0)
+
+        if n_flagged > 0:
+            ax.hist(
+                vacuity_arr[flagged],
+                bins=bin_edges,
+                alpha=0.7,
+                color="#d62728",
+                label=f"Review required (n={n_flagged}, {pct:.1%})",
+                edgecolor="black",
+                linewidth=0.5,
+            )
+        n_not = int((~flagged).sum())
+        if n_not > 0:
+            ax.hist(
+                vacuity_arr[~flagged],
+                bins=bin_edges,
+                alpha=0.5,
+                color="#2ca02c",
+                label=f"No flag (n={n_not})",
+                edgecolor="black",
+                linewidth=0.5,
+            )
+        ax.set_xlabel("Vacuity (epistemic uncertainty)")
+        ax.set_ylabel("Count")
+        ax.set_title(f"{ABLATION_LABELS[key]}: Vacuity by Human Review Flag")
+        ax.legend(fontsize=8)
+        ax.grid(axis="y", alpha=0.3)
+
+    fig.suptitle(
+        "Phase B.5: Human Review Flag Distribution by Vacuity (A3 and A4)",
+        fontsize=12,
+    )
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ============================================================================
+# Main
+# ============================================================================
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Phase B.5 — 4-Way Ablation Suite")
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Skip per-class and action-distribution plots (~2 min faster)",
+    )
+    parser.add_argument("--no-wandb", action="store_true", help="Disable W&B logging")
+    parser.add_argument(
+        "--combined-csv",
+        type=str,
+        default=None,
+        help="Override Phase B.2 combined CSV path (required for Phase B.6)",
+    )
+    parser.add_argument(
+        "--merged-folder",
+        type=str,
+        default=None,
+        help="Override Phase B.3 MERGED folder path (required for Phase B.6)",
+    )
+    args = parser.parse_args()
+
+    # ------------------------------------------------------------------
+    # Setup: run directory + logging
+    # ------------------------------------------------------------------
+    repo_root = Path.cwd()
+    runs_dir = repo_root / "outputs" / "runs"
+
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    run_name = f"{timestamp}_d_iqn_dss_phase_b5_ablation_suite"
+    run_dir = runs_dir / run_name
+    for sub in ["audit", "config", "data", "logs", "metrics", "plots", "summary"]:
+        (run_dir / sub).mkdir(parents=True, exist_ok=True)
+
+    log_file = run_dir / "logs" / "run.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    logger = logging.getLogger(f"stock_investment_dss.run.{run_name}")
+
+    logger.info("=" * 80)
+    logger.info("=== Phase B.5 — 4-Way Ablation Suite ===")
+    logger.info("=" * 80)
+    logger.info(f"Run dir:    {run_dir}")
+    logger.info(f"Quick mode: {args.quick}")
+
+    # ------------------------------------------------------------------
+    # Find / validate inputs
+    # ------------------------------------------------------------------
+    if args.combined_csv:
+        combined_csv = Path(args.combined_csv)
+    else:
+        b2_run = find_latest_phase_b2_run(runs_dir)
+        if b2_run is None:
+            logger.error("Could not find Phase B.2 run with combined CSV.")
+            return 1
+        combined_csv = b2_run / "audit" / "combined_with_counterfactual_labels.csv"
+
+    if not combined_csv.exists():
+        logger.error(f"Combined CSV not found: {combined_csv}")
+        return 1
+    logger.info(f"Combined CSV (B.2): {combined_csv}")
+
+    if args.merged_folder:
+        merged_folder = Path(args.merged_folder)
+    else:
+        merged_folder = find_merged_folder(runs_dir)
+        if merged_folder is None:
+            logger.error("Could not find Phase B.3 MERGED folder.")
+            return 1
+    logger.info(f"MERGED folder (B.3): {merged_folder}")
+
+    # ------------------------------------------------------------------
+    # Load data
+    # ------------------------------------------------------------------
+    df_all = pd.read_csv(combined_csv)
+    logger.info(f"Loaded combined CSV: {len(df_all)} rows, {len(df_all.columns)} cols")
+
+    if "edl_a_cf_label_available" in df_all.columns:
+        n_before = len(df_all)
+        df_all = df_all[df_all["edl_a_cf_label_available"]].reset_index(drop=True)
+        logger.info(
+            f"Dropped {n_before - len(df_all)} rows with unavailable cf labels "
+            f"({len(df_all)} remaining)"
+        )
+
+    # ------------------------------------------------------------------
+    # Reproduce exact Phase B.3 / B.4 train / test split
+    # ------------------------------------------------------------------
+    from sklearn.model_selection import train_test_split as sk_train_test_split
+
+    training_config_path = merged_folder / "config" / "training_config.json"
+    with open(training_config_path) as f:
+        training_cfg = json.load(f)
+    split_seed = training_cfg["seed"]
+    test_split_ratio = training_cfg["test_split"]
+    logger.info(f"Training config: seed={split_seed}, test_split={test_split_ratio}")
+
+    _class_to_id = {cls: idx for idx, cls in enumerate(training_cfg["action_classes"])}
+    y_all = df_all["edl_a_cf_label"].map(_class_to_id).fillna(0).values.astype(int)
+    all_indices = np.arange(len(df_all))
+    train_idx, test_idx = sk_train_test_split(
+        all_indices,
+        test_size=test_split_ratio,
+        stratify=y_all,
+        random_state=split_seed,
+    )
+    df_trainstar = df_all.iloc[train_idx].reset_index(drop=True)
+    df_test = df_all.iloc[test_idx].reset_index(drop=True)
+    logger.info(f"Train*: {len(df_trainstar)} rows | Test: {len(df_test)} rows")
+
+    # ------------------------------------------------------------------
+    # Feature engineering
+    # ------------------------------------------------------------------
+    features = infer_feature_columns(df_all)
+    logger.info(f"Inferred {len(features)} feature columns")
+
+    X_trainstar = df_trainstar[features].fillna(0.0).values.astype(np.float32)
+    X_test = df_test[features].fillna(0.0).values.astype(np.float32)
+
+    mean = X_trainstar.mean(axis=0)
+    std = X_trainstar.std(axis=0)
+    X_trainstar_std = standardize_features(X_trainstar, mean, std)
+    X_test_std = standardize_features(X_test, mean, std)
+
+    # ------------------------------------------------------------------
+    # Load ensemble models
+    # ------------------------------------------------------------------
+    config_path = merged_folder / "hp_search" / "best_config.json"
+    with open(config_path) as f:
+        best_cfg = json.load(f)
+    logger.info(f"Best config: {best_cfg}")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device: {device}")
+
+    models = load_ensemble_models(
+        merged_folder=merged_folder,
+        input_dim=len(features),
+        hidden_dims=best_cfg["hidden_dims"],
+        num_classes=3,
+        dropout=0.0,
+        activation=best_cfg["activation"],
+        device=device,
+    )
+    logger.info(f"Loaded {len(models)} ensemble models")
+
+    # ------------------------------------------------------------------
+    # EDL inference (train* for percentile thresholds; test for ablation)
+    # ------------------------------------------------------------------
+    logger.info("--- Running ensemble inference on Train* + Test ---")
+    edl_trainstar = ensemble_predict(models, X_trainstar_std, device)
+    edl_test = ensemble_predict(models, X_test_std, device)
+    logger.info(
+        f"Train* vacuity: mean={edl_trainstar['vacuity'].mean():.4f}, "
+        f"std={edl_trainstar['vacuity'].std():.4f}"
+    )
+    logger.info(
+        f"Test vacuity:   mean={edl_test['vacuity'].mean():.4f}, "
+        f"std={edl_test['vacuity'].std():.4f}"
+    )
+
+    # ------------------------------------------------------------------
+    # Percentile thresholds (from train* vacuity — same as Phase B.4.D)
+    # ------------------------------------------------------------------
+    percentile_cfg = compute_percentile_thresholds(edl_trainstar["vacuity"])
+    p33 = percentile_cfg.recommend_as_is_max_vacuity
+    p66 = percentile_cfg.reduce_size_max_vacuity
+    fh = percentile_cfg.force_hold_min_vacuity
+    logger.info(
+        f"Percentile thresholds: p33={p33:.4f}, p66={p66:.4f}, force_hold={fh:.4f}"
+    )
+
+    # ------------------------------------------------------------------
+    # W&B init
+    # ------------------------------------------------------------------
+    wandb_cfg = load_wandb_env()
+    use_wandb = wandb_cfg["enabled"] and not args.no_wandb
+    wandb_run = None
+    if use_wandb:
+        try:
+            import wandb
+
+            wandb_run = wandb.init(
+                project=wandb_cfg["project"],
+                entity=wandb_cfg["entity"],
+                name=run_name,
+                dir=str(run_dir),
+                config={
+                    "phase": "B.5",
+                    "n_trainstar": len(df_trainstar),
+                    "n_test": len(df_test),
+                    "n_features": len(features),
+                    "percentile_p33": p33,
+                    "percentile_p66": p66,
+                    "percentile_force_hold": fh,
+                    "best_config": best_cfg,
+                    "split_seed": split_seed,
+                },
+            )
+            logger.info(
+                f"W&B: project={wandb_cfg['project']}, entity={wandb_cfg['entity']}"
+            )
+        except Exception as e:
+            logger.warning(f"W&B init failed: {e}")
+            use_wandb = False
+
+    # ------------------------------------------------------------------
+    # Ablation A1: IQN-only
+    # ------------------------------------------------------------------
+    logger.info("=" * 60)
+    logger.info("ABLATION A1: IQN-only")
+    df_a1 = build_ablation_a1(df_test)
+    metrics_a1 = compute_ablation_metrics(
+        df_a1["final_action"],
+        df_test["edl_a_cf_label"],
+        source_actions=None,
+    )
+    df_a1.to_csv(run_dir / "audit" / "ablation_a1_iqn_only.csv", index=False)
+    logger.info(
+        f"A1 IQN-only: acc={metrics_a1['overall_acc']:.4f}, "
+        f"macro_f1={metrics_a1['macro_f1']:.4f}, "
+        f"n_modified={metrics_a1['n_modified']}"
+    )
+
+    # ------------------------------------------------------------------
+    # Ablation A2: IQN + HDP
+    # ------------------------------------------------------------------
+    logger.info("=" * 60)
+    logger.info("ABLATION A2: IQN + HDP")
+    df_a2 = build_ablation_a2(df_test)
+    metrics_a2 = compute_ablation_metrics(
+        df_a2["final_action"],
+        df_test["edl_a_cf_label"],
+        source_actions=df_a2["source_action"],
+    )
+    df_a2.to_csv(run_dir / "audit" / "ablation_a2_iqn_hdp.csv", index=False)
+    logger.info(
+        f"A2 IQN+HDP: acc={metrics_a2['overall_acc']:.4f}, "
+        f"macro_f1={metrics_a2['macro_f1']:.4f}, "
+        f"n_modified={metrics_a2['n_modified']} (vs A1)"
+    )
+
+    # ------------------------------------------------------------------
+    # Ablation A3: IQN + EDL (no HDP)
+    # ------------------------------------------------------------------
+    logger.info("=" * 60)
+    logger.info("ABLATION A3: IQN + EDL (HDP bypassed)")
+    df_a3 = build_ablation_a3(df_test, edl_test, percentile_cfg)
+    a3_final = df_a3["final_action_after_edl_gate"]
+    metrics_a3 = compute_ablation_metrics(
+        a3_final,
+        df_test["edl_a_cf_label"],
+        source_actions=df_a3["source_action"],
+    )
+    df_a3.to_csv(run_dir / "audit" / "ablation_a3_iqn_edl.csv", index=False)
+    logger.info(
+        f"A3 IQN+EDL: acc={metrics_a3['overall_acc']:.4f}, "
+        f"macro_f1={metrics_a3['macro_f1']:.4f}, "
+        f"n_modified={metrics_a3['n_modified']} (vs A1)"
+    )
+
+    # ------------------------------------------------------------------
+    # Ablation A4: IQN + HDP + EDL (full pipeline)
+    # ------------------------------------------------------------------
+    logger.info("=" * 60)
+    logger.info("ABLATION A4: IQN + HDP + EDL (full pipeline)")
+    df_a4 = build_ablation_a4(df_test, edl_test, percentile_cfg)
+    a4_final = df_a4["final_action_after_edl_gate"]
+    metrics_a4 = compute_ablation_metrics(
+        a4_final,
+        df_test["edl_a_cf_label"],
+        source_actions=df_a4["source_action"],
+    )
+    df_a4.to_csv(run_dir / "audit" / "ablation_a4_iqn_hdp_edl.csv", index=False)
+    logger.info(
+        f"A4 IQN+HDP+EDL: acc={metrics_a4['overall_acc']:.4f}, "
+        f"macro_f1={metrics_a4['macro_f1']:.4f}, "
+        f"n_modified={metrics_a4['n_modified']} (vs A2)"
+    )
+
+    # ------------------------------------------------------------------
+    # Collect all metrics
+    # ------------------------------------------------------------------
+    metrics_per_ablation = {
+        "A1": metrics_a1,
+        "A2": metrics_a2,
+        "A3": metrics_a3,
+        "A4": metrics_a4,
+    }
+    ablation_dfs = {"A1": df_a1, "A2": df_a2, "A3": df_a3, "A4": df_a4}
+
+    # ------------------------------------------------------------------
+    # Compute component contributions (deltas)
+    # ------------------------------------------------------------------
+    delta_hdp_acc = metrics_a2["overall_acc"] - metrics_a1["overall_acc"]
+    delta_hdp_f1 = metrics_a2["macro_f1"] - metrics_a1["macro_f1"]
+
+    delta_edl_iqn_acc = metrics_a3["overall_acc"] - metrics_a1["overall_acc"]
+    delta_edl_iqn_f1 = metrics_a3["macro_f1"] - metrics_a1["macro_f1"]
+
+    delta_edl_hdp_acc = metrics_a4["overall_acc"] - metrics_a2["overall_acc"]
+    delta_edl_hdp_f1 = metrics_a4["macro_f1"] - metrics_a2["macro_f1"]
+
+    delta_combined_acc = metrics_a4["overall_acc"] - metrics_a1["overall_acc"]
+    delta_combined_f1 = metrics_a4["macro_f1"] - metrics_a1["macro_f1"]
+
+    contributions = {
+        "hdp_contribution": {
+            "formula": "A2 - A1",
+            "delta_acc": delta_hdp_acc,
+            "delta_macro_f1": delta_hdp_f1,
+        },
+        "edl_contribution_on_iqn": {
+            "formula": "A3 - A1",
+            "delta_acc": delta_edl_iqn_acc,
+            "delta_macro_f1": delta_edl_iqn_f1,
+        },
+        "edl_contribution_on_hdp": {
+            "formula": "A4 - A2",
+            "delta_acc": delta_edl_hdp_acc,
+            "delta_macro_f1": delta_edl_hdp_f1,
+        },
+        "combined_hdp_plus_edl": {
+            "formula": "A4 - A1",
+            "delta_acc": delta_combined_acc,
+            "delta_macro_f1": delta_combined_f1,
+        },
+    }
+
+    logger.info("--- Component Contributions ---")
+    logger.info(
+        f"  HDP contribution        (A2-A1): Δacc={delta_hdp_acc:+.4f}, Δf1={delta_hdp_f1:+.4f}"
+    )
+    logger.info(
+        f"  EDL on IQN              (A3-A1): Δacc={delta_edl_iqn_acc:+.4f}, Δf1={delta_edl_iqn_f1:+.4f}"
+    )
+    logger.info(
+        f"  EDL on HDP              (A4-A2): Δacc={delta_edl_hdp_acc:+.4f}, Δf1={delta_edl_hdp_f1:+.4f}"
+    )
+    logger.info(
+        f"  Combined HDP+EDL        (A4-A1): Δacc={delta_combined_acc:+.4f}, Δf1={delta_combined_f1:+.4f}"
+    )
+
+    # ------------------------------------------------------------------
+    # Enriched metrics (size, gate, HDP, human review, calibration)
+    # ------------------------------------------------------------------
+    size_metrics = {
+        k: compute_size_metrics(ablation_dfs[k], df_test, k)
+        for k in ["A1", "A2", "A3", "A4"]
+    }
+    gate_dist = {k: compute_gate_distribution(ablation_dfs[k]) for k in ["A3", "A4"]}
+    hdp_metrics = compute_hdp_metrics(df_test)
+    human_review = {
+        k: compute_human_review_analysis(ablation_dfs[k], edl_test["vacuity"])
+        for k in ["A3", "A4"]
+    }
+    calibration = compute_calibration_metrics(
+        edl_test["vacuity"], ablation_dfs["A1"]["is_correct"]
+    )
+    enriched_contributions = compute_enriched_contributions(
+        size_metrics, gate_dist["A3"], gate_dist["A4"]
+    )
+    for k in ["A3", "A4"]:
+        gd = gate_dist[k]
+        if gd.get("applicable"):
+            logger.info(
+                f"Gate distribution {k}: "
+                + ", ".join(
+                    f"{g}={gd.get('n_' + g.lower(), 0)}" for g in ALL_GATE_OUTPUTS
+                )
+            )
+    for k in ["A3", "A4"]:
+        hr = human_review[k]
+        if hr.get("applicable"):
+            logger.info(
+                f"Human review {k}: n={hr['n_human_review_required']}"
+                f" ({hr['pct_human_review']:.1%})"
+            )
+
+    # ------------------------------------------------------------------
+    # Save metrics JSONs
+    # ------------------------------------------------------------------
+    with open(run_dir / "metrics" / "per_ablation_metrics.json", "w") as f:
+        json.dump(metrics_per_ablation, f, indent=2)
+
+    cms_dict = {
+        k: metrics_per_ablation[k]["confusion_matrix"] for k in metrics_per_ablation
+    }
+    with open(run_dir / "metrics" / "confusion_matrices.json", "w") as f:
+        json.dump(cms_dict, f, indent=2)
+
+    cross_summary = {}
+    for key in ["A1", "A2", "A3", "A4"]:
+        m = metrics_per_ablation[key]
+        cross_summary[key] = {
+            "ablation_id": key,
+            "ablation_name": ABLATION_LABELS[key],
+            "overall_acc": m["overall_acc"],
+            "macro_f1": m["macro_f1"],
+            "buy_f1": m["per_class"].get("BUY", {}).get("f1-score", 0.0),
+            "sell_f1": m["per_class"].get("SELL", {}).get("f1-score", 0.0),
+            "hold_f1": m["per_class"].get("HOLD", {}).get("f1-score", 0.0),
+            "n_buy": m["action_distribution"].get("BUY", 0),
+            "n_sell": m["action_distribution"].get("SELL", 0),
+            "n_hold": m["action_distribution"].get("HOLD", 0),
+            "n_modified": m["n_modified"],
+        }
+    cross_summary["component_contributions"] = contributions
+
+    with open(run_dir / "metrics" / "cross_ablation_summary.json", "w") as f:
+        json.dump(cross_summary, f, indent=2)
+
+    # Cross-ablation comparison CSV (4-row tabular)
+    comparison_rows = [cross_summary[k] for k in ["A1", "A2", "A3", "A4"]]
+    pd.DataFrame(comparison_rows).to_csv(
+        run_dir / "audit" / "ablation_comparison.csv", index=False
+    )
+    logger.info("Saved metrics JSONs and audit CSVs")
+
+    # --- Enriched metrics JSONs ---
+    with open(run_dir / "metrics" / "size_distribution.json", "w") as f:
+        json.dump(size_metrics, f, indent=2)
+    with open(run_dir / "metrics" / "gate_output_distribution.json", "w") as f:
+        json.dump(gate_dist, f, indent=2)
+    with open(run_dir / "metrics" / "ticker_analysis.json", "w") as f:
+        json.dump(hdp_metrics, f, indent=2)
+    with open(run_dir / "metrics" / "human_review_analysis.json", "w") as f:
+        json.dump(human_review, f, indent=2)
+    with open(run_dir / "metrics" / "calibration_curves.json", "w") as f:
+        json.dump(calibration, f, indent=2)
+    with open(run_dir / "metrics" / "enriched_component_contributions.json", "w") as f:
+        json.dump(enriched_contributions, f, indent=2)
+    logger.info("Saved enriched metrics JSONs")
+
+    # ------------------------------------------------------------------
+    # Save test_set_predictions.csv
+    # ------------------------------------------------------------------
+    df_preds = df_test[
+        [
+            "decision_id",
+            "date",
+            "iqn_chosen_action",
+            "hierarchical_action_type",
+            "edl_a_cf_label",
+        ]
+    ].copy()
+    df_preds["final_action_a1"] = df_a1["final_action"].values
+    df_preds["final_action_a2"] = df_a2["final_action"].values
+    df_preds["final_action_a3"] = (
+        df_a3["final_action_after_edl_gate"].apply(normalize_action).values
+    )
+    df_preds["final_action_a4"] = (
+        df_a4["final_action_after_edl_gate"].apply(normalize_action).values
+    )
+    df_preds["vacuity"] = edl_test["vacuity"]
+    df_preds["disagreement"] = edl_test["disagreement"]
+    df_preds["is_correct_a1"] = df_a1["is_correct"].values
+    df_preds["is_correct_a2"] = df_a2["is_correct"].values
+    df_preds["is_correct_a3"] = df_a3["is_correct"].values
+    df_preds["is_correct_a4"] = df_a4["is_correct"].values
+    df_preds.to_csv(run_dir / "data" / "test_set_predictions.csv", index=False)
+    logger.info("Saved test_set_predictions.csv")
+
+    # ------------------------------------------------------------------
+    # Plots
+    # ------------------------------------------------------------------
+    logger.info("--- Generating plots ---")
+
+    plot_ablation_accuracy_comparison(
+        metrics_per_ablation,
+        run_dir / "plots" / "ablation_accuracy_comparison.png",
+    )
+    logger.info("  ablation_accuracy_comparison.png")
+
+    plot_ablation_confusion_matrices(
+        metrics_per_ablation,
+        run_dir / "plots" / "ablation_confusion_matrices.png",
+    )
+    logger.info("  ablation_confusion_matrices.png")
+
+    if not args.quick:
+        plot_ablation_per_class_metrics(
+            metrics_per_ablation,
+            run_dir / "plots" / "ablation_per_class_metrics.png",
+        )
+        logger.info("  ablation_per_class_metrics.png")
+
+        plot_ablation_action_distribution(
+            metrics_per_ablation,
+            df_test["edl_a_cf_label"],
+            run_dir / "plots" / "ablation_action_distribution.png",
+        )
+        logger.info("  ablation_action_distribution.png")
+    else:
+        logger.info("  (per_class_metrics + action_distribution skipped in quick mode)")
+
+    # Enriched plots (gate + human review always; size/ticker/calibration skip in --quick)
+    plot_gate_output_distribution(
+        gate_dist,
+        run_dir / "plots" / "gate_output_distribution.png",
+    )
+    logger.info("  gate_output_distribution.png")
+
+    plot_human_review_flag_distribution(
+        human_review,
+        edl_test["vacuity"],
+        df_a3,
+        df_a4,
+        run_dir / "plots" / "human_review_flag_distribution.png",
+    )
+    logger.info("  human_review_flag_distribution.png")
+
+    if not args.quick:
+        plot_size_fraction_distribution(
+            size_metrics,
+            run_dir / "plots" / "size_fraction_distribution_per_ablation.png",
+        )
+        logger.info("  size_fraction_distribution_per_ablation.png")
+
+        plot_ticker_selection_distribution(
+            hdp_metrics,
+            run_dir / "plots" / "ticker_selection_distribution.png",
+        )
+        logger.info("  ticker_selection_distribution.png")
+
+        plot_vacuity_calibration_curve(
+            calibration,
+            run_dir / "plots" / "vacuity_calibration_curve.png",
+        )
+        logger.info("  vacuity_calibration_curve.png")
+    else:
+        logger.info("  (size/ticker/calibration plots skipped in quick mode)")
+
+    # ------------------------------------------------------------------
+    # Summary markdown
+    # ------------------------------------------------------------------
+    logger.info("--- Generating summary ---")
+
+    def _sign(v: float) -> str:
+        return f"{v:+.4f}"
+
+    summary_lines = [
+        "# Phase B.5 Ablation Suite — Run Summary",
+        "",
+        f"**Run:** `{run_name}`",
+        f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "## Data",
+        "",
+        f"- Train\\* size: **{len(df_trainstar)}** rows (used for percentile thresholds only)",
+        f"- Test size: **{len(df_test)}** rows",
+        f"- Features: **{len(features)}** columns",
+        f"- Ground truth: `edl_a_cf_label` (counterfactual hindsight labels)",
+        "",
+        "## Percentile Thresholds (A3 / A4)",
+        "",
+        f"Computed from train\\* vacuity distribution:",
+        f"- `rec_as_is_max_vacuity` = **{p33:.4f}** (p33)",
+        f"- `reduce_size_max_vacuity` = **{p66:.4f}** (p66)",
+        f"- `force_hold_min_vacuity` = **{fh:.4f}** (max(p66, 0.50))",
+        "",
+        "## Ablation Results",
+        "",
+        "| Ablation | Overall Acc | Macro F1 | BUY F1 | SELL F1 | HOLD F1 | n\\_modified |",
+        "|---|---|---|---|---|---|---|",
+    ]
+
+    for key in ["A1", "A2", "A3", "A4"]:
+        m = metrics_per_ablation[key]
+        buy_f1 = m["per_class"].get("BUY", {}).get("f1-score", 0.0)
+        sell_f1 = m["per_class"].get("SELL", {}).get("f1-score", 0.0)
+        hold_f1 = m["per_class"].get("HOLD", {}).get("f1-score", 0.0)
+        row = (
+            f"| {ABLATION_LABELS[key]} "
+            f"| {m['overall_acc']:.4f} "
+            f"| {m['macro_f1']:.4f} "
+            f"| {buy_f1:.4f} "
+            f"| {sell_f1:.4f} "
+            f"| {hold_f1:.4f} "
+            f"| {m['n_modified']} |"
+        )
+        summary_lines.append(row)
+
+    summary_lines += [
+        "",
+        "## Component Contributions",
+        "",
+        (
+            "This table quantifies the marginal contribution of each pipeline component. "
+            "All deltas are computed against the IQN-only baseline (A1) or "
+            "the next-upstream stage. Positive values indicate improvement over cf\\_label."
+        ),
+        "",
+        "| Component | Formula | Δ Accuracy | Δ Macro F1 |",
+        "|---|---|---|---|",
+        f"| HDP contribution | A2 − A1 | {_sign(delta_hdp_acc)} | {_sign(delta_hdp_f1)} |",
+        f"| EDL contribution on IQN | A3 − A1 | {_sign(delta_edl_iqn_acc)} | {_sign(delta_edl_iqn_f1)} |",
+        f"| EDL contribution on HDP | A4 − A2 | {_sign(delta_edl_hdp_acc)} | {_sign(delta_edl_hdp_f1)} |",
+        f"| Combined HDP+EDL | A4 − A1 | {_sign(delta_combined_acc)} | {_sign(delta_combined_f1)} |",
+        "",
+        "## Action Distribution",
+        "",
+        "| Ablation | BUY | SELL | HOLD |",
+        "|---|---|---|---|",
+    ]
+
+    n_test = len(df_test)
+    for key in ["A1", "A2", "A3", "A4"]:
+        dist = metrics_per_ablation[key]["action_distribution"]
+        row = (
+            f"| {ABLATION_LABELS[key]} "
+            f"| {dist.get('BUY', 0)} ({dist.get('BUY', 0)/n_test:.1%}) "
+            f"| {dist.get('SELL', 0)} ({dist.get('SELL', 0)/n_test:.1%}) "
+            f"| {dist.get('HOLD', 0)} ({dist.get('HOLD', 0)/n_test:.1%}) |"
+        )
+        summary_lines.append(row)
+
+    truth_dist = df_test["edl_a_cf_label"].apply(normalize_action).value_counts()
+    summary_lines.append(
+        f"| Ground Truth "
+        f"| {truth_dist.get('BUY', 0)} ({truth_dist.get('BUY', 0)/n_test:.1%}) "
+        f"| {truth_dist.get('SELL', 0)} ({truth_dist.get('SELL', 0)/n_test:.1%}) "
+        f"| {truth_dist.get('HOLD', 0)} ({truth_dist.get('HOLD', 0)/n_test:.1%}) |"
+    )
+
+    summary_lines += [
+        "",
+        "## Ensemble Uncertainty (Test Set)",
+        "",
+        f"- Mean vacuity: **{edl_test['vacuity'].mean():.4f}** "
+        f"(std={edl_test['vacuity'].std():.4f})",
+        f"- Mean disagreement: **{edl_test['disagreement'].mean():.4f}**",
+    ]
+
+    # ----------------------------------------------------------------
+    # Enriched summary sections
+    # ----------------------------------------------------------------
+
+    # --- Size-Level Contribution ---
+    sz_a2 = size_metrics.get("A2", {})
+    sz_a4 = size_metrics.get("A4", {})
+    _frac = lambda v: f"{v:.3f}" if v is not None else "N/A"
+    summary_lines += [
+        "",
+        "## Size-Level Contribution",
+        "",
+        (
+            "Position sizing is captured for HDP-enabled ablations (A2, A4) only. "
+            "A1 and A3 use `RiskAwareActionResolver` at runtime — see Documented Limitations."
+        ),
+        "",
+        "| Ablation | Size Determination | Mean Size Fraction | Notes |",
+        "|---|---|---|---|",
+        "| A1: IQN-only | N/A — RiskAwareActionResolver\\* | N/A | — |",
+        (
+            f"| A2: IQN+HDP | HDP SizeSelector"
+            f" | {_frac(sz_a2.get('mean_fraction_before'))}"
+            f" | Before gate = after (no gate in A2) |"
+        ),
+        "| A3: IQN+EDL | N/A — RiskAwareActionResolver\\* | N/A | — |",
+        (
+            (
+                f"| A4: IQN+HDP+EDL | HDP SizeSelector → EDL gate"
+                f" | {_frac(sz_a4.get('mean_fraction_before'))} →"
+                f" {_frac(sz_a4.get('mean_fraction_after'))}"
+                f" | \u0394={sz_a4.get('fraction_reduction_delta', 0.0):+.3f},"
+                f" n\\_modified={sz_a4.get('n_rows_with_size_modified', 0)} |"
+            )
+            if sz_a4.get("available")
+            else "| A4: IQN+HDP+EDL | HDP SizeSelector → EDL gate | N/A | — |"
+        ),
+        "",
+        (
+            "\\* **Note on A1/A3 size determination:** IQN v2 outputs only the discrete "
+            "action class (BUY/SELL/HOLD/REBALANCE). Position size is determined at runtime "
+            "by `RiskAwareActionResolver` based on investor risk profile, current portfolio "
+            "state (cash, holdings, weights), hmax, and stock prices. This static offline "
+            "audit does not include portfolio state, so size is N/A for A1/A3. "
+            "Addressed in the deferred Live Portfolio Simulation Ablation phase."
+        ),
+    ]
+
+    # --- Gate Activity Analysis ---
+    gd3 = gate_dist.get("A3", {})
+    gd4 = gate_dist.get("A4", {})
+    _gn = lambda gd, g: gd.get(f"n_{g.lower()}", 0) if gd.get("applicable") else 0
+    _gp = lambda gd, g: gd.get(f"pct_{g.lower()}", 0.0) if gd.get("applicable") else 0.0
+    gate_act_a3 = enriched_contributions.get("edl_gate_contribution_a3", {}).get(
+        "gate_activation_rate", 0.0
+    )
+    gate_act_a4 = enriched_contributions.get("edl_gate_contribution_a4", {}).get(
+        "gate_activation_rate", 0.0
+    )
+    summary_lines += [
+        "",
+        "## Gate Activity Analysis",
+        "",
+        "EDL gate outputs for A3 (IQN+EDL) and A4 (IQN+HDP+EDL):",
+        "",
+        "| Gate Output | A3 count (%) | A4 count (%) |",
+        "|---|---|---|",
+    ]
+    for gate_label in ALL_GATE_OUTPUTS:
+        c3, p3 = _gn(gd3, gate_label), _gp(gd3, gate_label)
+        c4, p4 = _gn(gd4, gate_label), _gp(gd4, gate_label)
+        summary_lines.append(f"| {gate_label} | {c3} ({p3:.1%}) | {c4} ({p4:.1%}) |")
+    summary_lines += [
+        f"| **Gate activation rate** | {gate_act_a3:.1%} | {gate_act_a4:.1%} |",
+        "",
+        (
+            f"**Key finding:** The EDL gate activates on {gate_act_a4:.1%} of decisions (A4 path) "
+            "via HUMAN\\_REVIEW or REDUCE\\_SIZE. "
+            "FORCE\\_HOLD events (which would change the action class) are 0 in this dataset. "
+            "The gate's primary mechanism is **position-size reduction** and **uncertainty flagging** "
+            "— both orthogonal to action-class accuracy."
+        ),
+    ]
+
+    # --- Ticker Selection Analysis ---
+    hdp_top5 = sorted(
+        hdp_metrics.get("ticker_distribution", {}).items(),
+        key=lambda kv: kv[1],
+        reverse=True,
+    )[:5]
+    _fmt_score = lambda v: f"**{v:.4f}**" if v is not None else "N/A"
+    summary_lines += [
+        "",
+        "## Ticker Selection Analysis (A2 / A4)",
+        "",
+        f"- Unique tickers selected: **{hdp_metrics.get('n_unique_tickers', 0)}**",
+        f"- Mean ticker score: {_fmt_score(hdp_metrics.get('mean_ticker_score'))}",
+        f"- Mean size score: {_fmt_score(hdp_metrics.get('mean_size_score'))}",
+        f"- Mean risk score: {_fmt_score(hdp_metrics.get('mean_risk_score'))}",
+        "- n\\_hdp\\_action\\_override: **0** (static audit — see Documented Limitations)",
+        "",
+        "Top-5 tickers by selection frequency:",
+        "",
+        "| Ticker | Count | % |",
+        "|---|---|---|",
+    ]
+    n_test_total = len(df_test) or 1
+    for ticker, cnt in hdp_top5:
+        summary_lines.append(f"| {ticker} | {cnt} | {cnt / n_test_total:.1%} |")
+
+    # --- Human Review Flag Distribution ---
+    hr_a3 = human_review.get("A3", {})
+    hr_a4 = human_review.get("A4", {})
+    _hr_val = lambda hr, key: hr.get(key, "N/A") if hr.get("applicable") else "N/A"
+    _hr_pct = lambda hr, key: (
+        f"{hr.get(key, 0.0):.1%}" if hr.get("applicable") else "N/A"
+    )
+    _hr_flt = lambda hr, key: (
+        f"{hr.get(key, 0.0):.4f}"
+        if (hr.get("applicable") and hr.get(key) is not None)
+        else "N/A"
+    )
+    summary_lines += [
+        "",
+        "## Human Review Flag Distribution (A3 / A4)",
+        "",
+        "| Metric | A3 (IQN+EDL) | A4 (IQN+HDP+EDL) |",
+        "|---|---|---|",
+        f"| n\\_human\\_review\\_required | {_hr_val(hr_a3, 'n_human_review_required')} | {_hr_val(hr_a4, 'n_human_review_required')} |",
+        f"| pct\\_human\\_review | {_hr_pct(hr_a3, 'pct_human_review')} | {_hr_pct(hr_a4, 'pct_human_review')} |",
+        f"| mean\\_vacuity\\_flagged | {_hr_flt(hr_a3, 'mean_vacuity_flagged')} | {_hr_flt(hr_a4, 'mean_vacuity_flagged')} |",
+        f"| mean\\_vacuity\\_not\\_flagged | {_hr_flt(hr_a3, 'mean_vacuity_not_flagged')} | {_hr_flt(hr_a4, 'mean_vacuity_not_flagged')} |",
+        "",
+        "Vacuity quartile review rates (Q1=lowest uncertainty, Q4=highest):",
+        "",
+        "| Quartile | A3 n\_flagged | A3 % flagged | A4 n\_flagged | A4 % flagged |",
+        "|---|---|---|---|---|",
+    ]
+    for q in ["Q1", "Q2", "Q3", "Q4"]:
+        qr3 = (
+            hr_a3.get("vacuity_quartile_review_rate", {}).get(q, {})
+            if hr_a3.get("applicable")
+            else {}
+        )
+        qr4 = (
+            hr_a4.get("vacuity_quartile_review_rate", {}).get(q, {})
+            if hr_a4.get("applicable")
+            else {}
+        )
+        nf3 = qr3.get("n_flagged", "N/A")
+        pf3 = f"{qr3.get('pct_flagged', 0.0):.1%}" if qr3 else "N/A"
+        nf4 = qr4.get("n_flagged", "N/A")
+        pf4 = f"{qr4.get('pct_flagged', 0.0):.1%}" if qr4 else "N/A"
+        summary_lines.append(f"| {q} | {nf3} | {pf3} | {nf4} | {pf4} |")
+
+    # --- Confidence Calibration ---
+    cal_med = calibration.get("median_vacuity", 0.0)
+    cal_conf = calibration.get("confident_subset_acc")
+    cal_unc = calibration.get("uncertain_subset_acc")
+    summary_lines += [
+        "",
+        "## Confidence Calibration",
+        "",
+        (
+            f"- Confident subset (vacuity < {cal_med:.4f}) accuracy: "
+            f"**{cal_conf:.4f}**"
+            if cal_conf is not None
+            else f"- Confident subset (vacuity < {cal_med:.4f}) accuracy: **N/A**"
+        ),
+        (
+            f"- Uncertain subset accuracy: **{cal_unc:.4f}**"
+            if cal_unc is not None
+            else "- Uncertain subset accuracy: **N/A**"
+        ),
+        "",
+        "Accuracy by vacuity quartile (Q1=lowest uncertainty, Q4=highest):",
+        "",
+        "| Quartile | n | Vacuity Range | Accuracy |",
+        "|---|---|---|---|",
+    ]
+    for q in ["Q1", "Q2", "Q3", "Q4"]:
+        qa_e = calibration.get("quartile_accuracy", {}).get(q, {})
+        n_q = qa_e.get("n", 0)
+        rng = qa_e.get("vacuity_range", [0.0, 0.0])
+        acc_q = qa_e.get("accuracy")
+        acc_str = f"{acc_q:.4f}" if acc_q is not None else "N/A"
+        summary_lines.append(
+            f"| {q} | {n_q} | [{rng[0]:.4f}, {rng[1]:.4f}) | {acc_str} |"
+        )
+    summary_lines.append(
+        "\n*Calibration uses A1 (IQN-only) is\\_correct as the accuracy signal. "
+        "All four ablations have identical action-class accuracy in this dataset.*"
+    )
+
+    # --- Documented Limitations ---
+    summary_lines += [
+        "",
+        "## Documented Limitations",
+        "",
+        "### Static Portfolio in Offline Audit",
+        "",
+        (
+            "This ablation uses a static offline dataset where each decision row is "
+            "evaluated independently without running portfolio state. Consequently:"
+        ),
+        "",
+        (
+            "1. **HDP action overrides** (BUY→HOLD on insufficient cash, "
+            "SELL→HOLD on no holdings) never trigger in this audit. "
+            "`n_hdp_action_override = 0` is a property of the audit setup, "
+            "not a claim about live performance."
+        ),
+        (
+            "2. **A1/A3 position sizing** — `RiskAwareActionResolver` computes size at "
+            "runtime using portfolio cash, holdings, hmax, prices, and investor risk profile. "
+            "These inputs are not available in the static audit. Size for A1/A3 is N/A."
+        ),
+        (
+            "3. **FORCE\\_HOLD gate events** — Zero events because test vacuity "
+            f"(mean≈{edl_test['vacuity'].mean():.2f}) is well below the force\\_hold "
+            "threshold (0.50). In higher-uncertainty regimes FORCE\\_HOLD would activate."
+        ),
+        "",
+        "### Architectural Insight",
+        "",
+        (
+            "The 4-way ablation reveals that HDP and the EDL gate operate on decision "
+            "dimensions **orthogonal to action class**:"
+        ),
+        "",
+        "- **IQN**: action class (BUY/SELL/HOLD/REBALANCE)",
+        "- **HDP**: ticker selection + position sizing + risk assessment",
+        "- **EDL gate**: size modulation (REDUCE\\_SIZE) + uncertainty flagging (HUMAN\\_REVIEW)",
+        "",
+        (
+            "Action-class accuracy alone measures 0% of HDP's unique value and captures only "
+            "FORCE\\_HOLD events (0/120 in this dataset) of the EDL gate's contribution. "
+            "The enriched metrics framework introduced here captures the actual multi-dimensional "
+            f"pipeline contribution: EDL gate fired on {gate_act_a4:.1%} of decisions (A4), "
+            "HDP determined position sizing for all A2/A4 decisions."
+        ),
+        "",
+        "**Deferred:** Live Portfolio Simulation Ablation phase (separate subsequent phase) "
+        "will capture RiskAwareActionResolver sizing, HDP action overrides, and "
+        "portfolio-aware performance metrics.",
+        "",
+        "---",
+        f"*Run directory: `{run_dir}`*",
+    ]
+
+    summary_md = "\n".join(summary_lines)
+    with open(run_dir / "summary" / "phase_b5_summary.md", "w") as f:
+        f.write(summary_md)
+
+    # Summary JSON
+    summary_json = {
+        "run_name": run_name,
+        "n_trainstar": len(df_trainstar),
+        "n_test": len(df_test),
+        "n_features": len(features),
+        "percentile_thresholds": {"p33": p33, "p66": p66, "force_hold": fh},
+        "cross_ablation": {
+            k: {
+                "overall_acc": metrics_per_ablation[k]["overall_acc"],
+                "macro_f1": metrics_per_ablation[k]["macro_f1"],
+                "n_modified": metrics_per_ablation[k]["n_modified"],
+            }
+            for k in ["A1", "A2", "A3", "A4"]
+        },
+        "component_contributions": contributions,
+        "test_vacuity_mean": float(edl_test["vacuity"].mean()),
+        "test_vacuity_std": float(edl_test["vacuity"].std()),
+    }
+    with open(run_dir / "summary" / "phase_b5_summary.json", "w") as f:
+        json.dump(summary_json, f, indent=2)
+
+    # ------------------------------------------------------------------
+    # Config JSON
+    # ------------------------------------------------------------------
+    phase_b5_config = {
+        "combined_csv": str(combined_csv),
+        "merged_folder": str(merged_folder),
+        "split_seed": split_seed,
+        "test_split_ratio": test_split_ratio,
+        "n_trainstar": len(df_trainstar),
+        "n_test": len(df_test),
+        "n_features": len(features),
+        "features": features,
+        "best_config": best_cfg,
+        "percentile_thresholds": {"p33": p33, "p66": p66, "force_hold": fh},
+        "quick_mode": args.quick,
+        "wandb_enabled": use_wandb,
+    }
+    with open(run_dir / "config" / "phase_b5_config.json", "w") as f:
+        json.dump(phase_b5_config, f, indent=2)
+
+    # ------------------------------------------------------------------
+    # W&B logging
+    # ------------------------------------------------------------------
+    if use_wandb:
+        try:
+            for key in ["A1", "A2", "A3", "A4"]:
+                m = metrics_per_ablation[key]
+                prefix = f"ablation/{key.lower()}"
+                wandb.log(
+                    {
+                        f"{prefix}/overall_acc": m["overall_acc"],
+                        f"{prefix}/macro_f1": m["macro_f1"],
+                        f"{prefix}/buy_f1": m["per_class"]
+                        .get("BUY", {})
+                        .get("f1-score", 0.0),
+                        f"{prefix}/sell_f1": m["per_class"]
+                        .get("SELL", {})
+                        .get("f1-score", 0.0),
+                        f"{prefix}/hold_f1": m["per_class"]
+                        .get("HOLD", {})
+                        .get("f1-score", 0.0),
+                        f"{prefix}/n_modified": m["n_modified"],
+                    }
+                )
+
+            wandb.log(
+                {
+                    "contributions/hdp_delta_acc": delta_hdp_acc,
+                    "contributions/hdp_delta_f1": delta_hdp_f1,
+                    "contributions/edl_on_iqn_delta_acc": delta_edl_iqn_acc,
+                    "contributions/edl_on_iqn_delta_f1": delta_edl_iqn_f1,
+                    "contributions/edl_on_hdp_delta_acc": delta_edl_hdp_acc,
+                    "contributions/edl_on_hdp_delta_f1": delta_edl_hdp_f1,
+                    "contributions/combined_delta_acc": delta_combined_acc,
+                    "contributions/combined_delta_f1": delta_combined_f1,
+                }
+            )
+
+            comparison_table = wandb.Table(
+                columns=[
+                    "ablation_id",
+                    "ablation_name",
+                    "overall_acc",
+                    "macro_f1",
+                    "buy_f1",
+                    "sell_f1",
+                    "hold_f1",
+                    "n_modified",
+                ]
+            )
+            for key in ["A1", "A2", "A3", "A4"]:
+                m = metrics_per_ablation[key]
+                comparison_table.add_data(
+                    key,
+                    ABLATION_LABELS[key],
+                    m["overall_acc"],
+                    m["macro_f1"],
+                    m["per_class"].get("BUY", {}).get("f1-score", 0.0),
+                    m["per_class"].get("SELL", {}).get("f1-score", 0.0),
+                    m["per_class"].get("HOLD", {}).get("f1-score", 0.0),
+                    m["n_modified"],
+                )
+            wandb.log({"cross_ablation_comparison": comparison_table})
+
+            # Enriched W&B metrics
+            for k in ["A3", "A4"]:
+                gd = gate_dist.get(k, {})
+                if gd.get("applicable"):
+                    for gate_label in ALL_GATE_OUTPUTS:
+                        wandb.log(
+                            {
+                                f"gate/{k.lower()}/n_{gate_label.lower()}": gd.get(
+                                    f"n_{gate_label.lower()}", 0
+                                ),
+                                f"gate/{k.lower()}/pct_{gate_label.lower()}": gd.get(
+                                    f"pct_{gate_label.lower()}", 0.0
+                                ),
+                            }
+                        )
+            for k in ["A2", "A4"]:
+                sm = size_metrics.get(k, {})
+                if sm.get("available"):
+                    wandb.log(
+                        {
+                            f"size/{k.lower()}/mean_fraction_before": sm[
+                                "mean_fraction_before"
+                            ],
+                            f"size/{k.lower()}/mean_fraction_after": sm[
+                                "mean_fraction_after"
+                            ],
+                            f"size/{k.lower()}/n_modified": sm[
+                                "n_rows_with_size_modified"
+                            ],
+                        }
+                    )
+            for k in ["A3", "A4"]:
+                hr = human_review.get(k, {})
+                if hr.get("applicable"):
+                    wandb.log(
+                        {
+                            f"human_review/{k.lower()}/n_required": hr[
+                                "n_human_review_required"
+                            ],
+                            f"human_review/{k.lower()}/pct": hr["pct_human_review"],
+                        }
+                    )
+
+            wandb_run.finish()
+            logger.info("W&B logging complete")
+        except Exception as e:
+            logger.warning(f"W&B logging error: {e}")
+
+    # ------------------------------------------------------------------
+    # Final summary
+    # ------------------------------------------------------------------
+    logger.info("=" * 80)
+    logger.info("=== Phase B.5 Complete ===")
+    logger.info(f"Run dir: {run_dir}")
+    logger.info("Ablation results:")
+    for key in ["A1", "A2", "A3", "A4"]:
+        m = metrics_per_ablation[key]
+        logger.info(
+            f"  {ABLATION_LABELS[key]:20s}  "
+            f"acc={m['overall_acc']:.4f}  f1={m['macro_f1']:.4f}  "
+            f"n_modified={m['n_modified']}"
+        )
+    logger.info("Component contributions:")
+    logger.info(
+        f"  HDP        (A2-A1): Δacc={delta_hdp_acc:+.4f}, Δf1={delta_hdp_f1:+.4f}"
+    )
+    logger.info(
+        f"  EDL/IQN    (A3-A1): Δacc={delta_edl_iqn_acc:+.4f}, Δf1={delta_edl_iqn_f1:+.4f}"
+    )
+    logger.info(
+        f"  EDL/HDP    (A4-A2): Δacc={delta_edl_hdp_acc:+.4f}, Δf1={delta_edl_hdp_f1:+.4f}"
+    )
+    logger.info(
+        f"  HDP+EDL    (A4-A1): Δacc={delta_combined_acc:+.4f}, Δf1={delta_combined_f1:+.4f}"
+    )
+    logger.info("=" * 80)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

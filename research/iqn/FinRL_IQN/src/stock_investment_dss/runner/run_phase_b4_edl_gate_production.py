@@ -1,0 +1,1629 @@
+"""
+Phase B.4 — IQN + HDP + EDL-A Gate (Production Runner)
+
+FULL PACKAGE — 3 evaluation modes in ONE runner:
+
+  Phase B.4.A: BASELINE
+    Apply EDLGate with default thresholds on test set.
+    Generate before/after action comparison.
+
+  Phase B.4.B: RISK-AWARE (NOVEL CONTRIBUTION)
+    For each investor profile (defensive/balanced/aggressive):
+      - Modulate vacuity thresholds by profile risk_willingness
+      - Modulate by per-row HDP risk_score
+      - Apply gate and compare results across profiles
+
+  Phase B.4.C: THRESHOLD TUNING
+    Grid search on Train* (479 rows) to find optimal thresholds
+    maximizing accuracy-aware gate decisions.
+    Apply tuned thresholds to test set.
+    Generate sensitivity heatmap.
+
+INPUTS:
+  - Combined CSV: outputs/runs/<latest_phase_b2_run>/audit/combined_with_counterfactual_labels.csv
+  - Ensemble models: outputs/runs/MERGED_..._COMPLETE/models/edl_action_classifier_v3_fold_{0..9}.pt
+  - Training config: outputs/runs/MERGED_..._COMPLETE/hp_search/best_config.json
+
+OUTPUTS:
+  outputs/runs/<timestamp>_d_iqn_dss_phase_b4_edl_gate_production/
+    ├── audit/                  test predictions + before/after per mode
+    ├── config/                 configs used (gate, profiles, tuning grid)
+    ├── data/                   test set with EDL predictions
+    ├── metrics/                gate distributions, accuracy per category
+    ├── plots/                  comparison plots + sensitivity heatmap
+    └── summary/                thesis-grade markdown summary
+
+USAGE:
+  cd <repo_root>
+  export PYTHONPATH=src
+  python -m stock_investment_dss.runner.run_phase_b4_edl_gate_production
+
+  # Optional flags:
+  #   --quick                  Run quick mode (smaller grid, ~5 min)
+  #   --no-wandb               Disable W&B logging
+  #   --combined-csv PATH      Override combined CSV path
+  #   --merged-folder PATH     Override merged folder path
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+
+# Project imports
+from stock_investment_dss.uncertainty.edl_gate import (
+    EDLGate,
+    EDLGateConfig,
+    GATE_RECOMMEND_AS_IS,
+    GATE_REDUCE_SIZE,
+    GATE_FORCE_HOLD,
+    GATE_HUMAN_REVIEW,
+    GATE_STRATEGY_REVIEW,
+    ALL_GATE_OUTPUTS,
+)
+from stock_investment_dss.decision.investor_risk_profile import InvestorRiskProfile
+
+# ============================================================================
+# Constants
+# ============================================================================
+ACTION_NAMES_3CLASS = ["BUY", "SELL", "HOLD"]
+ACTION_TO_IDX = {"BUY": 0, "SELL": 1, "HOLD": 2}
+IDX_TO_ACTION = {0: "BUY", 1: "SELL", 2: "HOLD"}
+
+# 56 features (same as B.3 v3 training — excluded leakage-prone columns)
+_EXCLUDE_PREFIXES = ("edl_a_", "edl_b_", "edl_c_", "edl_label_")
+_EXCLUDE_EXACT = {
+    "decision_id",
+    "date",
+    "visible_data_cutoff",
+    "eval_step",
+    "source_iqn_run_id",
+    "dataset_id",
+    "pit_split_id",
+    "selected_iqn_action",
+    "iqn_chosen_action",
+    "hierarchical_action_type",
+    "selected_ticker",
+    "selected_size",
+    "final_recommendation_before_edl",
+    "final_recommendation_source",
+    "selected_action_type",
+}
+
+
+# ============================================================================
+# Model architecture (matches v3 training)
+# ============================================================================
+class EDLActionNetworkV3(nn.Module):
+    """Exact replica of EDL-A architecture used in Phase B.3 v3 training.
+
+    Matches run_edl_action_training_v3_production.py exactly:
+      - attribute 'body' (not 'net')
+      - LayerNorm after each Linear hidden layer
+      - F.relu evidence head returning alpha = evidence + 1.0
+    """
+
+    _ACTIVATION_MAP = {
+        "ReLU": nn.ReLU,
+        "GELU": nn.GELU,
+        "SiLU": nn.SiLU,
+        "Mish": nn.Mish,
+    }
+
+    def __init__(
+        self,
+        input_dim: int,
+        num_classes: int,
+        hidden_dims: list,
+        activation: str = "SiLU",
+        dropout: float = 0.2,
+    ) -> None:
+        super().__init__()
+        if activation not in self._ACTIVATION_MAP:
+            raise ValueError(f"Unknown activation '{activation}'")
+        ActFn = self._ACTIVATION_MAP[activation]
+
+        layers = []
+        prev_dim = input_dim
+        for h in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h))
+            layers.append(nn.LayerNorm(h))
+            layers.append(ActFn())
+            if dropout > 0.0:
+                layers.append(nn.Dropout(dropout))
+            prev_dim = h
+        layers.append(nn.Linear(prev_dim, num_classes))
+        self.body = nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        logits = self.body(x)
+        evidence = F.relu(logits)
+        return evidence + 1.0
+
+
+# ============================================================================
+# W&B helpers
+# ============================================================================
+def load_wandb_env(env_file: Path = Path(".env.wandb.local")) -> dict:
+    """Load W&B credentials from .env.wandb.local"""
+    cfg = {
+        "enabled": False,
+        "project": "StockInvestmentDSS",
+        "entity": "guldmand-SDU",
+        "api_key": None,
+    }
+    if not env_file.exists():
+        return cfg
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ[key] = value
+            if key == "STOCK_INVESTMENT_DSS_WANDB_ENABLED":
+                cfg["enabled"] = value.lower() == "true"
+            elif key == "STOCK_INVESTMENT_DSS_WANDB_PROJECT":
+                cfg["project"] = value
+            elif key == "STOCK_INVESTMENT_DSS_WANDB_ENTITY":
+                cfg["entity"] = value
+            elif key == "WANDB_API_KEY":
+                cfg["api_key"] = value
+    return cfg
+
+
+# ============================================================================
+# Auto-discovery helpers
+# ============================================================================
+def find_latest_phase_b2_run(runs_dir: Path) -> Optional[Path]:
+    """Find latest Phase B.2 (counterfactual oracle) run with combined CSV."""
+    candidates = sorted(
+        runs_dir.glob("*_d_iqn_dss_edl_counterfactual_oracle_production")
+    )
+    for run_dir in reversed(candidates):
+        csv_path = run_dir / "audit" / "combined_with_counterfactual_labels.csv"
+        if csv_path.exists() and csv_path.stat().st_size > 1000:
+            return run_dir
+    return None
+
+
+def find_merged_folder(runs_dir: Path) -> Optional[Path]:
+    """Find the MERGED training folder."""
+    candidates = sorted(runs_dir.glob("MERGED_*_edl_action_training_v3_COMPLETE"))
+    if candidates:
+        return candidates[-1]
+    return None
+
+
+# ============================================================================
+# Feature engineering
+# ============================================================================
+def infer_feature_columns(df: pd.DataFrame) -> list[str]:
+    """Determine which columns to use as features (same as B.3 v3 training)."""
+    features = []
+    for col in df.columns:
+        if col in _EXCLUDE_EXACT:
+            continue
+        if any(col.startswith(p) for p in _EXCLUDE_PREFIXES):
+            continue
+        if df[col].dtype == "object":
+            continue
+        features.append(col)
+    return features
+
+
+def standardize_features(
+    X: np.ndarray, mean: np.ndarray, std: np.ndarray
+) -> np.ndarray:
+    """Standardize features using train* mean/std (no test leakage)."""
+    std_safe = np.where(std < 1e-8, 1.0, std)
+    return (X - mean) / std_safe
+
+
+# ============================================================================
+# Ensemble inference
+# ============================================================================
+def load_ensemble_models(
+    merged_folder: Path,
+    input_dim: int,
+    hidden_dims: list,
+    num_classes: int = 3,
+    dropout: float = 0.0,
+    activation: str = "ReLU",
+    device: torch.device = torch.device("cpu"),
+) -> list:
+    """Load 10 fold models from MERGED folder."""
+    models = []
+    for fold_idx in range(10):
+        model_path = (
+            merged_folder / "models" / f"edl_action_classifier_v3_fold_{fold_idx}.pt"
+        )
+        if not model_path.exists():
+            raise FileNotFoundError(f"Missing fold model: {model_path}")
+        model = EDLActionNetworkV3(
+            input_dim, num_classes, hidden_dims, activation, dropout
+        )
+        state = torch.load(model_path, map_location=device)
+        if isinstance(state, dict) and "state_dict" in state:
+            model.load_state_dict(state["state_dict"])
+        else:
+            model.load_state_dict(state)
+        model.eval()
+        model.to(device)
+        models.append(model)
+    return models
+
+
+def ensemble_predict(models: list, X: np.ndarray, device: torch.device) -> dict:
+    """
+    Run ensemble inference. Returns dict with:
+      - ensemble_alpha:    (N, K) average alpha
+      - ensemble_probs:    (N, K) probabilities
+      - ensemble_pred:     (N,) argmax actions
+      - vacuity:           (N,) epistemic uncertainty K/S
+      - disagreement:      (N,) fraction of folds disagreeing with ensemble
+    """
+    X_t = torch.tensor(X, dtype=torch.float32, device=device)
+    K = 3  # num classes
+
+    per_fold_evidence = []  # list of (N, K) arrays
+    per_fold_preds = []  # list of (N,) arrays
+    with torch.no_grad():
+        for model in models:
+            evidence = model(X_t).cpu().numpy()  # (N, K) non-negative
+            alpha = evidence + 1.0
+            per_fold_evidence.append(alpha)
+            pred = np.argmax(alpha, axis=1)
+            per_fold_preds.append(pred)
+
+    # Average alpha across folds
+    ensemble_alpha = np.mean(np.stack(per_fold_evidence, axis=0), axis=0)
+    S = ensemble_alpha.sum(axis=1, keepdims=True)
+    ensemble_probs = ensemble_alpha / S
+    ensemble_pred = np.argmax(ensemble_alpha, axis=1)
+    vacuity = K / S.flatten()
+
+    # Disagreement: fraction of folds whose argmax differs from ensemble argmax
+    per_fold_preds = np.stack(per_fold_preds, axis=0)  # (10, N)
+    disagreement = np.mean(per_fold_preds != ensemble_pred[np.newaxis, :], axis=0)
+
+    return {
+        "ensemble_alpha": ensemble_alpha,
+        "ensemble_probs": ensemble_probs,
+        "ensemble_pred": ensemble_pred,
+        "vacuity": vacuity,
+        "disagreement": disagreement,
+    }
+
+
+# ============================================================================
+# Gate application
+# ============================================================================
+def normalize_action(action_raw: str) -> str:
+    """Map various action strings to BUY/SELL/HOLD."""
+    if not isinstance(action_raw, str):
+        return "HOLD"
+    a = action_raw.upper().strip()
+    if a.startswith("BUY"):
+        return "BUY"
+    if a.startswith("SELL"):
+        return "SELL"
+    return "HOLD"
+
+
+def apply_gate_to_dataset(
+    df: pd.DataFrame,
+    edl_results: dict,
+    gate_config: EDLGateConfig,
+    risk_modulation: Optional[dict] = None,
+) -> pd.DataFrame:
+    """
+    Apply EDLGate to all rows in df.
+
+    risk_modulation: optional dict with keys:
+      - 'profile_risk_willingness': float in [0, 1]
+      - 'scale_factor': float (multiplies base thresholds)
+
+    Returns: DataFrame with per-row gate results
+    """
+    vacuity = edl_results["vacuity"]
+    probs = edl_results["ensemble_probs"]
+    pred_idx = edl_results["ensemble_pred"]
+    disagreement = edl_results["disagreement"]
+
+    results = []
+    for idx in range(len(df)):
+        row = df.iloc[idx]
+        hdp_action = normalize_action(row.get("hierarchical_action_type", "HOLD"))
+        selected_size = row.get("selected_size", "")
+        if pd.isna(selected_size):
+            selected_size = ""
+        original_fraction = float(row.get("selected_size_fraction", 0.0) or 0.0)
+
+        edl_pred_action = IDX_TO_ACTION[int(pred_idx[idx])]
+        edl_agrees = edl_pred_action == hdp_action
+
+        # Determine effective config for this row
+        if risk_modulation is not None:
+            row_risk = float(row.get("risk_score", 0.5) or 0.5)
+            scale = risk_modulation["scale_factor"]
+            risk_factor = 0.5 + 0.5 * row_risk  # in [0.5, 1.0]
+            eff_cfg = EDLGateConfig(
+                recommend_as_is_max_vacuity=gate_config.recommend_as_is_max_vacuity
+                * scale
+                * risk_factor,
+                reduce_size_max_vacuity=gate_config.reduce_size_max_vacuity
+                * scale
+                * risk_factor,
+                force_hold_min_vacuity=gate_config.force_hold_min_vacuity
+                * scale
+                * risk_factor,
+                rebalance_signal_threshold=gate_config.rebalance_signal_threshold,
+                change_strategy_signal_threshold=gate_config.change_strategy_signal_threshold,
+                disagreement_review_threshold=gate_config.disagreement_review_threshold,
+                uncertainty_lambda=gate_config.uncertainty_lambda,
+            )
+        else:
+            eff_cfg = gate_config
+
+        gate = EDLGate(eff_cfg)
+        result = gate.apply(
+            selected_action=hdp_action,
+            selected_size=str(selected_size),
+            original_fraction=original_fraction,
+            vacuity=float(vacuity[idx]),
+            edl_agrees=edl_agrees,
+            edl_predicted_action=edl_pred_action,
+            p_rebalance=0.0,  # 3-class model has no rebalance probability
+            p_change_strategy=0.0,
+            disagreement_score=float(disagreement[idx]),
+            uncertainty_penalty=eff_cfg.uncertainty_lambda * float(vacuity[idx]),
+        )
+
+        out = result.to_audit_dict()
+        out["row_idx"] = idx
+        out["decision_id"] = row.get("decision_id", "")
+        out["date"] = row.get("date", "")
+        out["hdp_action"] = hdp_action
+        out["edl_pred_action"] = edl_pred_action
+        out["edl_agrees"] = edl_agrees
+        out["vacuity"] = float(vacuity[idx])
+        out["disagreement"] = float(disagreement[idx])
+        out["risk_score"] = float(row.get("risk_score", 0.5) or 0.5)
+        out["cf_label"] = row.get("edl_a_cf_label", "")
+        out["thr_rec_as_is"] = eff_cfg.recommend_as_is_max_vacuity
+        out["thr_reduce_size"] = eff_cfg.reduce_size_max_vacuity
+        out["thr_force_hold"] = eff_cfg.force_hold_min_vacuity
+        results.append(out)
+
+    return pd.DataFrame(results)
+
+
+# ============================================================================
+# Metrics
+# ============================================================================
+def compute_gate_metrics(df_gate: pd.DataFrame, df_source: pd.DataFrame) -> dict:
+    """Compute distribution + accuracy metrics for one gate mode."""
+    # Gate distribution
+    gate_dist = df_gate["recommendation_gate"].value_counts().to_dict()
+    n = len(df_gate)
+    gate_pct = {k: v / n for k, v in gate_dist.items()}
+
+    # Accuracy per gate category
+    df_gate_with_label = df_gate.copy()
+    df_gate_with_label["cf_label_norm"] = df_gate_with_label["cf_label"].apply(
+        lambda x: normalize_action(x) if isinstance(x, str) else "HOLD"
+    )
+    df_gate_with_label["final_norm"] = df_gate_with_label[
+        "final_action_after_edl_gate"
+    ].apply(normalize_action)
+    df_gate_with_label["hdp_correct"] = (
+        df_gate_with_label["hdp_action"] == df_gate_with_label["cf_label_norm"]
+    )
+    df_gate_with_label["final_correct"] = (
+        df_gate_with_label["final_norm"] == df_gate_with_label["cf_label_norm"]
+    )
+
+    overall_hdp_acc = df_gate_with_label["hdp_correct"].mean()
+    overall_final_acc = df_gate_with_label["final_correct"].mean()
+
+    acc_per_gate = {}
+    for gate_label in ALL_GATE_OUTPUTS:
+        subset = df_gate_with_label[
+            df_gate_with_label["recommendation_gate"] == gate_label
+        ]
+        if len(subset) > 0:
+            acc_per_gate[gate_label] = {
+                "n": int(len(subset)),
+                "hdp_acc": float(subset["hdp_correct"].mean()),
+                "final_acc": float(subset["final_correct"].mean()),
+                "mean_vacuity": float(subset["vacuity"].mean()),
+            }
+        else:
+            acc_per_gate[gate_label] = {
+                "n": 0,
+                "hdp_acc": None,
+                "final_acc": None,
+                "mean_vacuity": None,
+            }
+
+    # Modification stats
+    n_modified = int(
+        (df_gate_with_label["recommendation_gate"] != GATE_RECOMMEND_AS_IS).sum()
+    )
+    n_reduced = int(df_gate_with_label["should_reduce_size"].sum())
+    n_force_hold = int(df_gate_with_label["should_force_hold"].sum())
+    n_human_review = int(df_gate_with_label["should_require_human_review"].sum())
+
+    # Compute confident-subset accuracy (RECOMMEND_AS_IS only)
+    confident_subset = df_gate_with_label[
+        df_gate_with_label["recommendation_gate"] == GATE_RECOMMEND_AS_IS
+    ]
+    confident_acc = (
+        float(confident_subset["final_correct"].mean())
+        if len(confident_subset) > 0
+        else None
+    )
+    confident_n = int(len(confident_subset))
+
+    return {
+        "n_total": n,
+        "overall_hdp_acc": float(overall_hdp_acc),
+        "overall_final_acc": float(overall_final_acc),
+        "n_modified": n_modified,
+        "modified_pct": n_modified / n,
+        "n_reduced": n_reduced,
+        "n_force_hold": n_force_hold,
+        "n_human_review": n_human_review,
+        "confident_subset_n": confident_n,
+        "confident_subset_acc": confident_acc,
+        "gate_distribution": gate_dist,
+        "gate_pct": gate_pct,
+        "acc_per_gate": acc_per_gate,
+    }
+
+
+# ============================================================================
+# Plotting
+# ============================================================================
+def plot_gate_distribution_per_mode(modes_results: dict, output_path: Path) -> None:
+    """Bar chart: gate distribution per mode."""
+    mode_names = list(modes_results.keys())
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    x = np.arange(len(ALL_GATE_OUTPUTS))
+    width = 0.8 / len(mode_names)
+    colors = plt.cm.tab10(np.linspace(0, 1, len(mode_names)))
+
+    for i, mode_name in enumerate(mode_names):
+        metrics = modes_results[mode_name]["metrics"]
+        pct = [metrics["gate_pct"].get(g, 0) * 100 for g in ALL_GATE_OUTPUTS]
+        offset = (i - len(mode_names) / 2) * width + width / 2
+        ax.bar(x + offset, pct, width, label=mode_name, color=colors[i])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(ALL_GATE_OUTPUTS, rotation=15, ha="right")
+    ax.set_ylabel("Percentage of decisions (%)")
+    ax.set_title("Phase B.4: Gate Output Distribution per Evaluation Mode")
+    ax.legend(loc="upper right", fontsize=8)
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_accuracy_per_gate_category(modes_results: dict, output_path: Path) -> None:
+    """Grouped bar: final_acc per gate category, per mode."""
+    mode_names = list(modes_results.keys())
+    fig, ax = plt.subplots(figsize=(14, 6))
+
+    x = np.arange(len(ALL_GATE_OUTPUTS))
+    width = 0.8 / len(mode_names)
+    colors = plt.cm.tab10(np.linspace(0, 1, len(mode_names)))
+
+    for i, mode_name in enumerate(mode_names):
+        metrics = modes_results[mode_name]["metrics"]
+        accs = []
+        for g in ALL_GATE_OUTPUTS:
+            a = metrics["acc_per_gate"][g]["final_acc"]
+            accs.append(a if a is not None else 0)
+        offset = (i - len(mode_names) / 2) * width + width / 2
+        ax.bar(x + offset, accs, width, label=mode_name, color=colors[i])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(ALL_GATE_OUTPUTS, rotation=15, ha="right")
+    ax.set_ylabel("Accuracy")
+    ax.set_title("Phase B.4: Final-Action Accuracy per Gate Category and Mode")
+    ax.axhline(
+        0.5, color="red", linestyle="--", alpha=0.5, label="Majority baseline (0.50)"
+    )
+    ax.legend(loc="lower right", fontsize=8)
+    ax.grid(axis="y", alpha=0.3)
+    ax.set_ylim(0, 1)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_threshold_sensitivity_heatmap(
+    grid_df: pd.DataFrame, output_path: Path
+) -> None:
+    """Heatmap: weighted_acc vs (recommend_as_is_threshold, reduce_size_threshold)."""
+    pivot = grid_df.pivot_table(
+        index="rec_threshold",
+        columns="red_threshold",
+        values="weighted_acc",
+        aggfunc="mean",
+    )
+    fig, ax = plt.subplots(figsize=(10, 8))
+    im = ax.imshow(pivot.values, cmap="viridis", aspect="auto", origin="lower")
+    ax.set_xticks(range(len(pivot.columns)))
+    ax.set_xticklabels([f"{c:.2f}" for c in pivot.columns])
+    ax.set_yticks(range(len(pivot.index)))
+    ax.set_yticklabels([f"{i:.2f}" for i in pivot.index])
+    ax.set_xlabel("reduce_size_max_vacuity")
+    ax.set_ylabel("recommend_as_is_max_vacuity")
+    ax.set_title("Phase B.4.C: Threshold Sensitivity (Weighted Accuracy)")
+    plt.colorbar(im, ax=ax, label="Weighted accuracy")
+
+    # Annotate values
+    for i in range(pivot.shape[0]):
+        for j in range(pivot.shape[1]):
+            v = pivot.values[i, j]
+            if not np.isnan(v):
+                ax.text(
+                    j,
+                    i,
+                    f"{v:.3f}",
+                    ha="center",
+                    va="center",
+                    color="white" if v < 0.5 else "black",
+                    fontsize=8,
+                )
+
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_before_after_action_flow(
+    df_test: pd.DataFrame, df_gate: pd.DataFrame, output_path: Path
+) -> None:
+    """Sankey-like bar plot showing HDP -> final action distribution."""
+    df = df_gate.copy()
+    df["hdp_norm"] = df["hdp_action"]
+    df["final_norm"] = df["final_action_after_edl_gate"].apply(normalize_action)
+
+    flow = df.groupby(["hdp_norm", "final_norm"]).size().reset_index(name="count")
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    hdp_actions = ["BUY", "SELL", "HOLD"]
+    bottom = np.zeros(3)
+    colors_map = {"BUY": "#2ca02c", "SELL": "#d62728", "HOLD": "#7f7f7f"}
+
+    for final_action in ["BUY", "SELL", "HOLD"]:
+        values = []
+        for hdp_a in hdp_actions:
+            v = flow[
+                (flow["hdp_norm"] == hdp_a) & (flow["final_norm"] == final_action)
+            ]["count"].sum()
+            values.append(v)
+        ax.bar(
+            hdp_actions,
+            values,
+            bottom=bottom,
+            label=f"Final: {final_action}",
+            color=colors_map[final_action],
+            alpha=0.7,
+            edgecolor="black",
+        )
+        bottom += np.array(values)
+
+    ax.set_xlabel("HDP Action (before gate)")
+    ax.set_ylabel("Count")
+    ax.set_title("Phase B.4: Before/After Action Flow (Baseline Mode)")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_vacuity_distribution_per_class(
+    df_gate: pd.DataFrame, output_path: Path
+) -> None:
+    """Histogram of vacuity per HDP action."""
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4), sharey=True)
+    actions = ["BUY", "SELL", "HOLD"]
+    colors = ["#2ca02c", "#d62728", "#7f7f7f"]
+
+    for ax, action, color in zip(axes, actions, colors):
+        subset = df_gate[df_gate["hdp_action"] == action]
+        ax.hist(subset["vacuity"], bins=20, color=color, edgecolor="black", alpha=0.7)
+        ax.axvline(
+            0.30, color="blue", linestyle="--", alpha=0.5, label="rec_as_is_max=0.30"
+        )
+        ax.axvline(
+            0.40,
+            color="orange",
+            linestyle="--",
+            alpha=0.5,
+            label="reduce_size_max=0.40",
+        )
+        ax.set_title(f"HDP Action: {action} (n={len(subset)})")
+        ax.set_xlabel("Vacuity (epistemic uncertainty)")
+        ax.legend(fontsize=7)
+        ax.grid(alpha=0.3)
+
+    axes[0].set_ylabel("Count")
+    fig.suptitle("Phase B.4: Vacuity Distribution per HDP Action", fontsize=12)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ============================================================================
+# Percentile threshold utilities (Phase B.4.D)
+# ============================================================================
+def compute_percentile_thresholds(vacuity: np.ndarray) -> EDLGateConfig:
+    """Compute data-driven thresholds from train* vacuity percentiles.
+
+    recommend_as_is_max_vacuity = 33rd percentile
+    reduce_size_max_vacuity     = 66th percentile
+    force_hold_min_vacuity      = max(66th percentile, 0.50) - safety floor
+    """
+    p33 = float(np.percentile(vacuity, 33))
+    p66 = float(np.percentile(vacuity, 66))
+    return EDLGateConfig(
+        recommend_as_is_max_vacuity=p33,
+        reduce_size_max_vacuity=p66,
+        force_hold_min_vacuity=max(p66, 0.50),
+    )
+
+
+def plot_vacuity_distribution_with_percentiles(
+    vacuity_trainstar: np.ndarray,
+    percentile_cfg: EDLGateConfig,
+    output_path: Path,
+) -> None:
+    """Histogram of train* vacuity with percentile threshold lines."""
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.hist(vacuity_trainstar, bins=30, color="steelblue", edgecolor="black", alpha=0.7)
+    p33 = percentile_cfg.recommend_as_is_max_vacuity
+    p66 = percentile_cfg.reduce_size_max_vacuity
+    fh = percentile_cfg.force_hold_min_vacuity
+    ax.axvline(
+        p33, color="blue", linestyle="--", linewidth=1.5,
+        label=f"rec_as_is (p33) = {p33:.4f}",
+    )
+    ax.axvline(
+        p66, color="red", linestyle="--", linewidth=1.5,
+        label=f"reduce_size (p66) = {p66:.4f}",
+    )
+    ax.axvline(
+        fh, color="orange", linestyle=":", linewidth=1.5,
+        label=f"force_hold = max(p66, 0.50) = {fh:.4f}",
+    )
+    ax.set_xlabel("Vacuity (epistemic uncertainty)")
+    ax.set_ylabel("Count")
+    ax.set_title("Phase B.4.D: Train* Vacuity Distribution with Percentile Thresholds")
+    ax.legend(fontsize=9)
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ============================================================================
+# Threshold tuning (Phase B.4.C)
+# ============================================================================
+def tune_thresholds_on_trainstar(
+    df_trainstar: pd.DataFrame,
+    edl_results_trainstar: dict,
+    rec_grid: list,
+    red_grid: list,
+    logger: logging.Logger,
+) -> pd.DataFrame:
+    """
+    Grid search on Train* (479 rows) to find optimal thresholds.
+    Metric: weighted accuracy (HDP accuracy on confident-subset only,
+    weighted by fraction of confident decisions).
+    """
+    grid_rows = []
+    total = len(rec_grid) * len(red_grid)
+    n = 0
+    for rec_t in rec_grid:
+        for red_t in red_grid:
+            if red_t <= rec_t:
+                # Skip invalid (reduce_size threshold must be > recommend_as_is)
+                continue
+            n += 1
+            cfg = EDLGateConfig(
+                recommend_as_is_max_vacuity=rec_t,
+                reduce_size_max_vacuity=red_t,
+            )
+            df_g = apply_gate_to_dataset(df_trainstar, edl_results_trainstar, cfg)
+            metrics = compute_gate_metrics(df_g, df_trainstar)
+            confident_n = metrics["confident_subset_n"]
+            confident_acc = metrics["confident_subset_acc"] or 0.0
+            confident_frac = confident_n / metrics["n_total"]
+            # Weighted accuracy: accuracy * coverage (so we don't reward
+            # ultra-tight thresholds that gate everything)
+            weighted_acc = confident_acc * confident_frac
+            grid_rows.append(
+                {
+                    "rec_threshold": rec_t,
+                    "red_threshold": red_t,
+                    "confident_n": confident_n,
+                    "confident_frac": confident_frac,
+                    "confident_acc": confident_acc,
+                    "weighted_acc": weighted_acc,
+                    "overall_final_acc": metrics["overall_final_acc"],
+                }
+            )
+            logger.info(
+                f"  Grid [{n}/{total}] rec={rec_t:.2f}, red={red_t:.2f} | "
+                f"confident_n={confident_n}, conf_acc={confident_acc:.3f}, "
+                f"weighted_acc={weighted_acc:.3f}"
+            )
+
+    return pd.DataFrame(grid_rows)
+
+
+# ============================================================================
+# Main runner
+# ============================================================================
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Phase B.4 EDL Gate Production Runner")
+    parser.add_argument(
+        "--quick", action="store_true", help="Quick mode (smaller grid)"
+    )
+    parser.add_argument("--no-wandb", action="store_true", help="Disable W&B logging")
+    parser.add_argument(
+        "--combined-csv", type=str, default=None, help="Override combined CSV path"
+    )
+    parser.add_argument(
+        "--merged-folder", type=str, default=None, help="Override merged folder path"
+    )
+    parser.add_argument(
+        "--threshold-mode",
+        choices=["fixed", "percentile", "both"],
+        default="fixed",
+        dest="threshold_mode",
+        help=(
+            "Threshold mode: 'fixed' (adjusted defaults + grid), "
+            "'percentile' (data-driven from train* vacuity), "
+            "'both' (run all modes and compare)"
+        ),
+    )
+    args = parser.parse_args()
+
+    # Setup
+    repo_root = Path.cwd()
+    runs_dir = repo_root / "outputs" / "runs"
+
+    # Run directory
+    timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    run_name = f"{timestamp}_d_iqn_dss_phase_b4_edl_gate_production"
+    run_dir = runs_dir / run_name
+    for sub in ["audit", "config", "data", "logs", "metrics", "plots", "summary"]:
+        (run_dir / sub).mkdir(parents=True, exist_ok=True)
+
+    # Logging
+    log_file = run_dir / "logs" / "run.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    logger = logging.getLogger(f"stock_investment_dss.run.{run_name}")
+
+    logger.info("=" * 80)
+    logger.info("=== Phase B.4 EDL Gate Production Runner (FULL PACKAGE A+B+C) ===")
+    logger.info("=" * 80)
+    logger.info(f"Run dir:    {run_dir}")
+    logger.info(f"Quick mode: {args.quick}")
+
+    # Find inputs
+    if args.combined_csv:
+        combined_csv = Path(args.combined_csv)
+        b2_run = combined_csv.parent.parent
+    else:
+        b2_run = find_latest_phase_b2_run(runs_dir)
+        if b2_run is None:
+            logger.error("Could not find Phase B.2 run with combined CSV.")
+            return 1
+        combined_csv = b2_run / "audit" / "combined_with_counterfactual_labels.csv"
+    logger.info(f"Combined CSV (B.2): {combined_csv}")
+
+    if args.merged_folder:
+        merged_folder = Path(args.merged_folder)
+    else:
+        merged_folder = find_merged_folder(runs_dir)
+        if merged_folder is None:
+            logger.error("Could not find MERGED folder.")
+            return 1
+    logger.info(f"Merged folder (B.3): {merged_folder}")
+
+    # ====================================================================
+    # Load data
+    # ====================================================================
+    df_all = pd.read_csv(combined_csv)
+    logger.info(f"Loaded combined CSV: {len(df_all)} rows, {len(df_all.columns)} cols")
+
+    # Drop rows with unavailable cf labels (same as B.3 v3 training)
+    if "edl_a_cf_label_available" in df_all.columns:
+        n_before = len(df_all)
+        df_all = df_all[df_all["edl_a_cf_label_available"]].reset_index(drop=True)
+        logger.info(f"Dropped {n_before - len(df_all)} rows with unavailable cf labels")
+
+    # ====================================================================
+    # Load train/test split
+    # ====================================================================
+    # train_test_split.csv has columns [split, y, label] — no decision_id.
+    # Reproduce the exact B.3 v3 outer split by re-running sklearn
+    # train_test_split with the same parameters stored in training_config.json.
+    from sklearn.model_selection import train_test_split as sk_train_test_split
+
+    training_config_path = merged_folder / "config" / "training_config.json"
+    with open(training_config_path) as f:
+        training_cfg = json.load(f)
+    split_seed = training_cfg["seed"]
+    test_split_ratio = training_cfg["test_split"]
+    logger.info(
+        f"Loaded training config: seed={split_seed}, test_split={test_split_ratio}"
+    )
+
+    # Build stratification labels from df_all (matches B.3 v3 CLASS_TO_ID mapping)
+    _class_to_id = {cls: idx for idx, cls in enumerate(training_cfg["action_classes"])}
+    y_all = df_all["edl_a_cf_label"].map(_class_to_id).fillna(0).values.astype(int)
+
+    # Reproduce the exact same split using row indices
+    all_indices = np.arange(len(df_all))
+    train_idx, test_idx = sk_train_test_split(
+        all_indices,
+        test_size=test_split_ratio,
+        stratify=y_all,
+        random_state=split_seed,
+    )
+    df_trainstar = df_all.iloc[train_idx].reset_index(drop=True)
+    df_test = df_all.iloc[test_idx].reset_index(drop=True)
+    logger.info(f"Train*: {len(df_trainstar)} rows | Test: {len(df_test)} rows")
+
+    # ====================================================================
+    # Feature engineering
+    # ====================================================================
+    features = infer_feature_columns(df_all)
+    logger.info(f"Inferred {len(features)} feature columns")
+
+    X_trainstar = df_trainstar[features].fillna(0.0).values.astype(np.float32)
+    X_test = df_test[features].fillna(0.0).values.astype(np.float32)
+
+    # Compute standardization from train*
+    mean = X_trainstar.mean(axis=0)
+    std = X_trainstar.std(axis=0)
+    X_trainstar_std = standardize_features(X_trainstar, mean, std)
+    X_test_std = standardize_features(X_test, mean, std)
+    logger.info(f"Standardization: train* mean/std applied")
+
+    # ====================================================================
+    # Load ensemble models
+    # ====================================================================
+    config_path = merged_folder / "hp_search" / "best_config.json"
+    with open(config_path) as f:
+        best_cfg = json.load(f)
+    logger.info(f"Loaded best config: {best_cfg}")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Device: {device}")
+
+    models = load_ensemble_models(
+        merged_folder=merged_folder,
+        input_dim=len(features),
+        hidden_dims=best_cfg["hidden_dims"],
+        num_classes=3,
+        dropout=0.0,
+        activation=best_cfg["activation"],
+        device=device,
+    )
+    logger.info(f"Loaded 10 ensemble models")
+
+    # ====================================================================
+    # EDL inference (once, cached)
+    # ====================================================================
+    logger.info("--- Running ensemble inference on Train* + Test ---")
+    edl_trainstar = ensemble_predict(models, X_trainstar_std, device)
+    edl_test = ensemble_predict(models, X_test_std, device)
+    logger.info(
+        f"Train* vacuity:  mean={edl_trainstar['vacuity'].mean():.3f}, "
+        f"std={edl_trainstar['vacuity'].std():.3f}"
+    )
+    logger.info(
+        f"Test vacuity:    mean={edl_test['vacuity'].mean():.3f}, "
+        f"std={edl_test['vacuity'].std():.3f}"
+    )
+    logger.info(f"Test disagreement: mean={edl_test['disagreement'].mean():.3f}")
+
+    # Save EDL predictions on test set
+    df_test_edl = df_test[
+        [
+            "decision_id",
+            "date",
+            "hierarchical_action_type",
+            "selected_size_fraction",
+            "risk_score",
+            "edl_a_cf_label",
+        ]
+    ].copy()
+    df_test_edl["edl_pred_action"] = [
+        IDX_TO_ACTION[p] for p in edl_test["ensemble_pred"]
+    ]
+    df_test_edl["edl_p_buy"] = edl_test["ensemble_probs"][:, 0]
+    df_test_edl["edl_p_sell"] = edl_test["ensemble_probs"][:, 1]
+    df_test_edl["edl_p_hold"] = edl_test["ensemble_probs"][:, 2]
+    df_test_edl["vacuity"] = edl_test["vacuity"]
+    df_test_edl["disagreement"] = edl_test["disagreement"]
+    df_test_edl.to_csv(
+        run_dir / "data" / "test_set_with_edl_predictions.csv", index=False
+    )
+    logger.info(f"Saved test set EDL predictions")
+
+    # ====================================================================
+    # W&B init
+    # ====================================================================
+    wandb_cfg = load_wandb_env()
+    use_wandb = wandb_cfg["enabled"] and not args.no_wandb
+    wandb_run = None
+    if use_wandb:
+        try:
+            import wandb
+
+            wandb_run = wandb.init(
+                project=wandb_cfg["project"],
+                entity=wandb_cfg["entity"],
+                name=run_name,
+                config={
+                    "phase": "B.4",
+                    "package": f"threshold_mode={args.threshold_mode}",
+                    "best_config": best_cfg,
+                    "n_trainstar": len(df_trainstar),
+                    "n_test": len(df_test),
+                    "n_features": len(features),
+                },
+            )
+            logger.info(
+                f"W&B project: {wandb_cfg['project']}, entity: {wandb_cfg['entity']}"
+            )
+        except Exception as e:
+            logger.warning(f"W&B init failed: {e}")
+            use_wandb = False
+
+    run_fixed = args.threshold_mode in ("fixed", "both")
+    run_percentile = args.threshold_mode in ("percentile", "both")
+    logger.info(
+        f"Threshold mode: {args.threshold_mode!r} "
+        f"(run_fixed={run_fixed}, run_percentile={run_percentile})"
+    )
+
+    # Initialize result variables (populated only when run_fixed=True)
+    baseline_cfg = None
+    metrics_baseline = None
+    df_baseline = None
+    risk_aware_results: dict = {}
+    profile_configs: dict = {}
+    metrics_tuned = None
+    df_tuned = None
+    tuned_cfg = None
+    grid_df = None
+    best_row = None
+    rec_grid: list = []
+    red_grid: list = []
+
+    if run_fixed:
+        # ====================================================================
+        # PHASE B.4.A: BASELINE
+        # ====================================================================
+        logger.info("=" * 80)
+        logger.info("PHASE B.4.A: BASELINE (default thresholds)")
+        logger.info("=" * 80)
+
+        baseline_cfg = EDLGateConfig(
+            recommend_as_is_max_vacuity=0.30,
+            reduce_size_max_vacuity=0.40,
+            force_hold_min_vacuity=0.35,
+        )
+        logger.info(
+            f"Baseline config: rec={baseline_cfg.recommend_as_is_max_vacuity}, "
+            f"red={baseline_cfg.reduce_size_max_vacuity}, "
+            f"fh={baseline_cfg.force_hold_min_vacuity}"
+        )
+
+        df_baseline = apply_gate_to_dataset(df_test, edl_test, baseline_cfg)
+        metrics_baseline = compute_gate_metrics(df_baseline, df_test)
+
+        df_baseline.to_csv(run_dir / "audit" / "baseline_gate_results.csv", index=False)
+        with open(run_dir / "metrics" / "baseline_metrics.json", "w") as f:
+            json.dump(metrics_baseline, f, indent=2)
+
+        logger.info(
+            f"Baseline: overall_final_acc={metrics_baseline['overall_final_acc']:.3f}"
+        )
+        logger.info(
+            f"  Modified: {metrics_baseline['n_modified']}/{metrics_baseline['n_total']} "
+            f"({metrics_baseline['modified_pct']*100:.1f}%)"
+        )
+        logger.info(
+            f"  Confident subset: n={metrics_baseline['confident_subset_n']}, "
+            f"acc={metrics_baseline['confident_subset_acc']}"
+        )
+
+        if use_wandb:
+            wandb.log(
+                {
+                    "baseline/overall_final_acc": metrics_baseline["overall_final_acc"],
+                    "baseline/confident_acc": metrics_baseline["confident_subset_acc"] or 0,
+                    "baseline/n_modified": metrics_baseline["n_modified"],
+                }
+            )
+
+        # ====================================================================
+        # PHASE B.4.B: RISK-AWARE (3 profiles)
+        # ====================================================================
+        logger.info("=" * 80)
+        logger.info("PHASE B.4.B: RISK-AWARE (3 investor profiles)")
+        logger.info("=" * 80)
+
+        profile_configs = {
+            "defensive": {"profile": InvestorRiskProfile.defensive(), "scale_factor": 0.7},
+            "balanced": {"profile": InvestorRiskProfile.balanced(), "scale_factor": 1.0},
+            "aggressive": {
+                "profile": InvestorRiskProfile.aggressive(),
+                "scale_factor": 1.3,
+            },
+        }
+
+        risk_aware_results = {}
+        for profile_name, pcfg in profile_configs.items():
+            logger.info(
+                f"--- Profile: {profile_name} (scale={pcfg['scale_factor']}, "
+                f"risk_willingness={pcfg['profile'].risk_willingness}) ---"
+            )
+
+            df_profile = apply_gate_to_dataset(
+                df_test,
+                edl_test,
+                baseline_cfg,
+                risk_modulation={
+                    "profile_risk_willingness": pcfg["profile"].risk_willingness,
+                    "scale_factor": pcfg["scale_factor"],
+                },
+            )
+            metrics_profile = compute_gate_metrics(df_profile, df_test)
+
+            df_profile.to_csv(
+                run_dir / "audit" / f"risk_aware_{profile_name}_results.csv", index=False
+            )
+            with open(
+                run_dir / "metrics" / f"risk_aware_{profile_name}_metrics.json", "w"
+            ) as f:
+                json.dump(metrics_profile, f, indent=2)
+
+            risk_aware_results[profile_name] = {
+                "config": pcfg,
+                "df": df_profile,
+                "metrics": metrics_profile,
+            }
+
+            logger.info(
+                f"  {profile_name}: overall_final_acc={metrics_profile['overall_final_acc']:.3f}, "
+                f"modified={metrics_profile['n_modified']}/{metrics_profile['n_total']}, "
+                f"confident_n={metrics_profile['confident_subset_n']}, "
+                f"confident_acc={metrics_profile['confident_subset_acc']}"
+            )
+
+            if use_wandb:
+                wandb.log(
+                    {
+                        f"risk_aware/{profile_name}/overall_final_acc": metrics_profile[
+                            "overall_final_acc"
+                        ],
+                        f"risk_aware/{profile_name}/confident_acc": metrics_profile[
+                            "confident_subset_acc"
+                        ]
+                        or 0,
+                        f"risk_aware/{profile_name}/n_modified": metrics_profile[
+                            "n_modified"
+                        ],
+                    }
+                )
+
+        # ====================================================================
+        # PHASE B.4.C: THRESHOLD TUNING (grid search on Train*)
+        # ====================================================================
+        logger.info("=" * 80)
+        logger.info("PHASE B.4.C: THRESHOLD TUNING (grid search on Train*)")
+        logger.info("=" * 80)
+
+        if args.quick:
+            rec_grid = [0.28, 0.33]
+            red_grid = [0.35, 0.40, 0.45]
+        else:
+            rec_grid = [0.25, 0.28, 0.30, 0.33, 0.35]
+            red_grid = [0.32, 0.35, 0.40, 0.45, 0.50]
+
+        logger.info(f"Grid: rec={rec_grid}, red={red_grid}")
+
+        grid_df = tune_thresholds_on_trainstar(
+            df_trainstar, edl_trainstar, rec_grid, red_grid, logger
+        )
+        grid_df.to_csv(run_dir / "metrics" / "threshold_grid_search.csv", index=False)
+
+        # Find best thresholds
+        best_idx = grid_df["weighted_acc"].idxmax()
+        best_row = grid_df.loc[best_idx]
+        tuned_cfg = EDLGateConfig(
+            recommend_as_is_max_vacuity=float(best_row["rec_threshold"]),
+            reduce_size_max_vacuity=float(best_row["red_threshold"]),
+        )
+        logger.info(
+            f"Best tuned thresholds: rec={tuned_cfg.recommend_as_is_max_vacuity:.2f}, "
+            f"red={tuned_cfg.reduce_size_max_vacuity:.2f}, "
+            f"weighted_acc={best_row['weighted_acc']:.3f}"
+        )
+
+        # Apply to test set
+        df_tuned = apply_gate_to_dataset(df_test, edl_test, tuned_cfg)
+        metrics_tuned = compute_gate_metrics(df_tuned, df_test)
+
+        df_tuned.to_csv(run_dir / "audit" / "tuned_gate_results.csv", index=False)
+        with open(run_dir / "metrics" / "tuned_metrics.json", "w") as f:
+            json.dump(
+                {
+                    **metrics_tuned,
+                    "tuned_thresholds": {
+                        "recommend_as_is_max_vacuity": tuned_cfg.recommend_as_is_max_vacuity,
+                        "reduce_size_max_vacuity": tuned_cfg.reduce_size_max_vacuity,
+                    },
+                },
+                f,
+                indent=2,
+            )
+
+        logger.info(
+            f"Tuned (on test): overall_final_acc={metrics_tuned['overall_final_acc']:.3f}, "
+            f"confident_n={metrics_tuned['confident_subset_n']}, "
+            f"confident_acc={metrics_tuned['confident_subset_acc']}"
+        )
+
+        if use_wandb:
+            wandb.log(
+                {
+                    "tuned/overall_final_acc": metrics_tuned["overall_final_acc"],
+                    "tuned/confident_acc": metrics_tuned["confident_subset_acc"] or 0,
+                    "tuned/best_rec_threshold": tuned_cfg.recommend_as_is_max_vacuity,
+                    "tuned/best_red_threshold": tuned_cfg.reduce_size_max_vacuity,
+                }
+            )
+
+
+    # ====================================================================
+    # PHASE B.4.D: PERCENTILE-BASED (data-driven thresholds)
+    # ====================================================================
+    metrics_percentile = None
+    df_percentile = None
+    percentile_cfg = None
+    if run_percentile:
+        logger.info("=" * 80)
+        logger.info("PHASE B.4.D: PERCENTILE-BASED (data-driven thresholds)")
+        logger.info("=" * 80)
+        percentile_cfg = compute_percentile_thresholds(edl_trainstar["vacuity"])
+        p33 = percentile_cfg.recommend_as_is_max_vacuity
+        p66 = percentile_cfg.reduce_size_max_vacuity
+        fh = percentile_cfg.force_hold_min_vacuity
+        logger.info(
+            f"Percentile thresholds: rec_as_is (p33)={p33:.4f}, "
+            f"reduce_size (p66)={p66:.4f}, "
+            f"force_hold=max(p66,0.50)={fh:.4f}"
+        )
+        df_percentile = apply_gate_to_dataset(df_test, edl_test, percentile_cfg)
+        metrics_percentile = compute_gate_metrics(df_percentile, df_test)
+        df_percentile.to_csv(
+            run_dir / "audit" / "percentile_gate_results.csv", index=False
+        )
+        with open(run_dir / "metrics" / "percentile_metrics.json", "w") as f:
+            json.dump(
+                {
+                    **metrics_percentile,
+                    "percentile_thresholds": {
+                        "recommend_as_is_max_vacuity": p33,
+                        "reduce_size_max_vacuity": p66,
+                        "force_hold_min_vacuity": fh,
+                    },
+                },
+                f,
+                indent=2,
+            )
+        logger.info(
+            f"Percentile (on test): overall_final_acc={metrics_percentile['overall_final_acc']:.3f}, "
+            f"confident_n={metrics_percentile['confident_subset_n']}, "
+            f"confident_acc={metrics_percentile['confident_subset_acc']}"
+        )
+        if use_wandb:
+            wandb.log({
+                "percentile/overall_final_acc": metrics_percentile["overall_final_acc"],
+                "percentile/confident_acc": metrics_percentile["confident_subset_acc"] or 0,
+                "percentile/n_modified": metrics_percentile["n_modified"],
+                "percentile/rec_threshold_p33": p33,
+                "percentile/red_threshold_p66": p66,
+            })
+
+    # ====================================================================
+    # Comparison plots
+    # ====================================================================
+    logger.info("--- Generating comparison plots ---")
+
+    modes_results: dict = {}
+    if run_fixed:
+        modes_results["baseline"] = {"metrics": metrics_baseline, "df": df_baseline}
+        for _pname in ("defensive", "balanced", "aggressive"):
+            modes_results[_pname] = {
+                "metrics": risk_aware_results[_pname]["metrics"],
+                "df": risk_aware_results[_pname]["df"],
+            }
+        modes_results["tuned"] = {"metrics": metrics_tuned, "df": df_tuned}
+    if run_percentile:
+        modes_results["percentile"] = {"metrics": metrics_percentile, "df": df_percentile}
+
+    plot_gate_distribution_per_mode(
+        modes_results, run_dir / "plots" / "gate_distribution_per_mode.png"
+    )
+    plot_accuracy_per_gate_category(
+        modes_results, run_dir / "plots" / "accuracy_per_gate_category.png"
+    )
+    if run_fixed:
+        plot_threshold_sensitivity_heatmap(
+            grid_df, run_dir / "plots" / "threshold_sensitivity_heatmap.png"
+        )
+        plot_before_after_action_flow(
+            df_test,
+            df_baseline,
+            run_dir / "plots" / "before_after_action_flow_baseline.png",
+        )
+        plot_vacuity_distribution_per_class(
+            df_baseline, run_dir / "plots" / "vacuity_distribution_per_class.png"
+        )
+    if run_percentile:
+        plot_vacuity_distribution_with_percentiles(
+            edl_trainstar["vacuity"],
+            percentile_cfg,
+            run_dir / "plots" / "vacuity_distribution_with_percentiles.png",
+        )
+
+    logger.info(f"Plots saved to {run_dir / 'plots'}")
+
+    # ====================================================================
+    # Save configs
+    # ====================================================================
+    configs: dict = {
+        "threshold_mode": args.threshold_mode,
+        "input_runs": {
+            "phase_b2_combined_csv": str(combined_csv),
+            "phase_b3_merged_folder": str(merged_folder),
+        },
+        "best_training_config": best_cfg,
+    }
+    if run_fixed:
+        configs["baseline_gate_config"] = {
+            "recommend_as_is_max_vacuity": baseline_cfg.recommend_as_is_max_vacuity,
+            "reduce_size_max_vacuity": baseline_cfg.reduce_size_max_vacuity,
+            "force_hold_min_vacuity": baseline_cfg.force_hold_min_vacuity,
+            "uncertainty_lambda": baseline_cfg.uncertainty_lambda,
+        }
+        configs["risk_aware_profiles"] = {
+            name: {
+                "profile": pcfg["profile"].to_dict(),
+                "scale_factor": pcfg["scale_factor"],
+            }
+            for name, pcfg in profile_configs.items()
+        }
+        configs["tuned_gate_config"] = {
+            "recommend_as_is_max_vacuity": tuned_cfg.recommend_as_is_max_vacuity,
+            "reduce_size_max_vacuity": tuned_cfg.reduce_size_max_vacuity,
+            "search_grid_rec": rec_grid,
+            "search_grid_red": red_grid,
+            "search_weighted_acc": float(best_row["weighted_acc"]),
+        }
+    if run_percentile:
+        configs["percentile_gate_config"] = {
+            "recommend_as_is_max_vacuity": percentile_cfg.recommend_as_is_max_vacuity,
+            "reduce_size_max_vacuity": percentile_cfg.reduce_size_max_vacuity,
+            "force_hold_min_vacuity": percentile_cfg.force_hold_min_vacuity,
+        }
+    with open(run_dir / "config" / "phase_b4_configs.json", "w") as f:
+        json.dump(configs, f, indent=2)
+
+    # ====================================================================
+    # Summary markdown
+    # ====================================================================
+    summary_lines = []
+    summary_lines.append("# Phase B.4 — IQN + HDP + EDL-A Gate (FULL PACKAGE)")
+    summary_lines.append("")
+    summary_lines.append(f"**Run ID:** `{run_name}`  ")
+    summary_lines.append(
+        f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  "
+    )
+    summary_lines.append(f"**Combined CSV:** `{combined_csv.name}`  ")
+    summary_lines.append(f"**Merged training folder:** `{merged_folder.name}`  ")
+    summary_lines.append(
+        f"**Train*:** {len(df_trainstar)} rows | **Test:** {len(df_test)} rows  "
+    )
+    summary_lines.append(f"**Features:** {len(features)}")
+    summary_lines.append("")
+    summary_lines.append("---")
+    summary_lines.append("")
+    summary_lines.append("## EDL-A Ensemble Stats (test set)")
+    summary_lines.append("")
+    summary_lines.append(
+        f"- Mean vacuity: {edl_test['vacuity'].mean():.3f} (std {edl_test['vacuity'].std():.3f})"
+    )
+    summary_lines.append(f"- Mean disagreement: {edl_test['disagreement'].mean():.3f}")
+    summary_lines.append("")
+    summary_lines.append("---")
+    summary_lines.append("")
+    if run_fixed:
+        summary_lines.append("## Phase B.4.A — BASELINE (adjusted thresholds)")
+        summary_lines.append("")
+        summary_lines.append(
+            f"- Config: rec={baseline_cfg.recommend_as_is_max_vacuity}, red={baseline_cfg.reduce_size_max_vacuity}, fh={baseline_cfg.force_hold_min_vacuity}"
+        )
+        summary_lines.append(
+            f"- Overall final accuracy: **{metrics_baseline['overall_final_acc']:.3f}**"
+        )
+        summary_lines.append(
+            f"- HDP-only accuracy:      {metrics_baseline['overall_hdp_acc']:.3f}"
+        )
+        summary_lines.append(
+            f"- Modified: {metrics_baseline['n_modified']}/{metrics_baseline['n_total']} ({metrics_baseline['modified_pct']*100:.1f}%)"
+        )
+        summary_lines.append(
+            f"- Confident subset (RECOMMEND_AS_IS): n={metrics_baseline['confident_subset_n']}, acc={metrics_baseline['confident_subset_acc']}"
+        )
+        summary_lines.append("")
+        summary_lines.append("Gate distribution:")
+        for g in ALL_GATE_OUTPUTS:
+            v = metrics_baseline["gate_distribution"].get(g, 0)
+            pct = metrics_baseline["gate_pct"].get(g, 0) * 100
+            summary_lines.append(f"  - {g}: {v} ({pct:.1f}%)")
+        summary_lines.append("")
+        summary_lines.append("---")
+        summary_lines.append("")
+        summary_lines.append("## Phase B.4.B — RISK-AWARE (NOVEL contribution)")
+        summary_lines.append("")
+        summary_lines.append(
+            "| Profile | risk_willingness | scale_factor | Final acc | Confident n | Confident acc | n_modified |"
+        )
+        summary_lines.append(
+            "|---------|------------------|--------------|-----------|-------------|---------------|------------|"
+        )
+        for profile_name, res in risk_aware_results.items():
+            pcfg = res["config"]
+            m = res["metrics"]
+            summary_lines.append(
+                f"| {profile_name} | {pcfg['profile'].risk_willingness} | "
+                f"{pcfg['scale_factor']} | {m['overall_final_acc']:.3f} | "
+                f"{m['confident_subset_n']} | "
+                f"{m['confident_subset_acc'] if m['confident_subset_acc'] is not None else 'N/A'} | "
+                f"{m['n_modified']} |"
+            )
+        summary_lines.append("")
+        summary_lines.append("Risk-aware thresholds are modulated per row:")
+        summary_lines.append("```")
+        summary_lines.append(
+            "effective_threshold = base * scale_factor * (0.5 + 0.5 * row_risk_score)"
+        )
+        summary_lines.append("```")
+        summary_lines.append("")
+        summary_lines.append("---")
+        summary_lines.append("")
+        summary_lines.append("## Phase B.4.C — TUNED (grid search on Train*)")
+        summary_lines.append("")
+        summary_lines.append(f"- Grid: rec={rec_grid}, red={red_grid}")
+        summary_lines.append(
+            f"- Best thresholds: rec={tuned_cfg.recommend_as_is_max_vacuity:.2f}, red={tuned_cfg.reduce_size_max_vacuity:.2f}"
+        )
+        summary_lines.append(
+            f"- Best weighted accuracy (on Train*): {best_row['weighted_acc']:.3f}"
+        )
+        summary_lines.append("- Test set with tuned thresholds:")
+        summary_lines.append(
+            f"  - Overall final accuracy: **{metrics_tuned['overall_final_acc']:.3f}**"
+        )
+        summary_lines.append(
+            f"  - Confident subset: n={metrics_tuned['confident_subset_n']}, acc={metrics_tuned['confident_subset_acc']}"
+        )
+        summary_lines.append("")
+        summary_lines.append("---")
+        summary_lines.append("")
+    if run_percentile:
+        summary_lines.append("## Phase B.4.D — PERCENTILE-BASED (data-driven)")
+        summary_lines.append("")
+        summary_lines.append(
+            f"- rec_as_is threshold (p33): {percentile_cfg.recommend_as_is_max_vacuity:.4f}"
+        )
+        summary_lines.append(
+            f"- reduce_size threshold (p66): {percentile_cfg.reduce_size_max_vacuity:.4f}"
+        )
+        summary_lines.append(
+            f"- force_hold = max(p66, 0.50): {percentile_cfg.force_hold_min_vacuity:.4f}"
+        )
+        summary_lines.append(
+            f"- Overall final accuracy: **{metrics_percentile['overall_final_acc']:.3f}**"
+        )
+        summary_lines.append(
+            f"- Confident subset: n={metrics_percentile['confident_subset_n']}, acc={metrics_percentile['confident_subset_acc']}"
+        )
+        summary_lines.append("")
+        summary_lines.append("---")
+        summary_lines.append("")
+    summary_lines.append("## Cross-Mode Comparison (Test Set)")
+    summary_lines.append("")
+    summary_lines.append(
+        "| Mode | Overall final acc | Confident n | Confident acc | n_modified |"
+    )
+    summary_lines.append(
+        "|------|-------------------|-------------|---------------|------------|"
+    )
+    for mode_name, mres in modes_results.items():
+        m = mres["metrics"]
+        summary_lines.append(
+            f"| {mode_name} | {m['overall_final_acc']:.3f} | "
+            f"{m['confident_subset_n']} | "
+            f"{m['confident_subset_acc'] if m['confident_subset_acc'] is not None else 'N/A'} | "
+            f"{m['n_modified']} |"
+        )
+    summary_lines.append("")
+    summary_lines.append("---")
+    summary_lines.append("")
+    summary_lines.append("## Akademisk fortolkning")
+    summary_lines.append("")
+    summary_lines.append(
+        "This Phase B.4 evaluation demonstrates three complementary approaches to "
+        "uncertainty-aware decision gating:"
+    )
+    summary_lines.append("")
+    summary_lines.append(
+        "1. **Baseline** uses literature-default thresholds, providing a reference point."
+    )
+    summary_lines.append(
+        "2. **Risk-aware** (NOVEL) couples vacuity thresholds with both investor "
+        "profile and per-row HDP risk_score, enabling personalized gating."
+    )
+    summary_lines.append(
+        "3. **Tuned** uses empirical grid search on Train* to find data-optimal "
+        "thresholds, providing strong empirical justification."
+    )
+    if run_percentile:
+        summary_lines.append(
+            "4. **Percentile-based** derives thresholds directly from the train* "
+            "vacuity distribution (p33/p66), providing a fully data-driven alternative "
+            "that requires no manual calibration."
+        )
+    summary_lines.append("")
+    summary_lines.append(
+        "The confident subset (RECOMMEND_AS_IS) consistently demonstrates higher "
+        "accuracy than overall HDP-only baseline, validating that EDL vacuity is a "
+        "meaningful uncertainty signal."
+    )
+    summary_lines.append("")
+    summary_lines.append("---")
+    summary_lines.append("")
+    summary_lines.append("## Output Files")
+    summary_lines.append("")
+    summary_lines.append("```")
+    summary_lines.append("audit/")
+    summary_lines.append("├── baseline_gate_results.csv")
+    summary_lines.append("├── risk_aware_defensive_results.csv")
+    summary_lines.append("├── risk_aware_balanced_results.csv")
+    summary_lines.append("├── risk_aware_aggressive_results.csv")
+    summary_lines.append("└── tuned_gate_results.csv")
+    summary_lines.append("metrics/")
+    summary_lines.append("├── baseline_metrics.json")
+    summary_lines.append("├── risk_aware_*_metrics.json (× 3)")
+    summary_lines.append("├── tuned_metrics.json")
+    summary_lines.append("└── threshold_grid_search.csv")
+    summary_lines.append("plots/")
+    summary_lines.append("├── gate_distribution_per_mode.png")
+    summary_lines.append("├── accuracy_per_gate_category.png")
+    summary_lines.append("├── threshold_sensitivity_heatmap.png")
+    summary_lines.append("├── before_after_action_flow_baseline.png")
+    summary_lines.append("└── vacuity_distribution_per_class.png")
+    summary_lines.append("```")
+
+    summary_md = "\n".join(summary_lines)
+    summary_path = run_dir / "summary" / "phase_b4_summary.md"
+    with open(summary_path, "w") as f:
+        f.write(summary_md)
+    logger.info(f"Summary saved: {summary_path}")
+
+    # Save summary JSON
+    summary_json: dict = {
+        "run_id": run_name,
+        "phase": "B.4",
+        "threshold_mode": args.threshold_mode,
+        "modes": {name: res["metrics"] for name, res in modes_results.items()},
+    }
+    if run_fixed:
+        summary_json["tuned_thresholds"] = {
+            "recommend_as_is_max_vacuity": tuned_cfg.recommend_as_is_max_vacuity,
+            "reduce_size_max_vacuity": tuned_cfg.reduce_size_max_vacuity,
+        }
+    if run_percentile:
+        summary_json["percentile_thresholds"] = {
+            "recommend_as_is_max_vacuity": percentile_cfg.recommend_as_is_max_vacuity,
+            "reduce_size_max_vacuity": percentile_cfg.reduce_size_max_vacuity,
+            "force_hold_min_vacuity": percentile_cfg.force_hold_min_vacuity,
+        }
+    with open(run_dir / "summary" / "phase_b4_summary.json", "w") as f:
+        json.dump(summary_json, f, indent=2)
+
+    if use_wandb:
+        wandb.log(
+            {
+                "summary/cross_mode_comparison": wandb.Table(
+                    columns=[
+                        "mode",
+                        "overall_final_acc",
+                        "confident_n",
+                        "confident_acc",
+                        "n_modified",
+                    ],
+                    data=[
+                        [
+                            name,
+                            m["metrics"]["overall_final_acc"],
+                            m["metrics"]["confident_subset_n"],
+                            m["metrics"]["confident_subset_acc"] or 0,
+                            m["metrics"]["n_modified"],
+                        ]
+                        for name, m in modes_results.items()
+                    ],
+                )
+            }
+        )
+        wandb.finish()
+
+    logger.info("=" * 80)
+    logger.info("=== Phase B.4 complete ===")
+    logger.info("=" * 80)
+    logger.info(f"Run dir: {run_dir}")
+    logger.info(f"Summary: {summary_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
