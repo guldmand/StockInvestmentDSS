@@ -1,0 +1,640 @@
+=== B.6.2 counterfactual ===
+--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/metrics/oracle_summary.json ---
+{
+  "source_combined_run_id": "2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production",
+  "market_data_file": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/data/market/daily/imports/market_data_full_500.csv",
+  "class_space": [
+    "HOLD",
+    "BUY",
+    "SELL"
+  ],
+  "horizon_days": 20,
+  "parameters": {
+    "drawdown_lambda": 0.5,
+    "min_label_margin": 0.005
+  },
+  "total_rows": 554,
+  "labeled_rows": 523,
+  "unavailable_rows": 31,
+  "ambiguous_rows": 0,
+  "label_distribution": {
+    "BUY": 247,
+    "SELL": 191,
+    "HOLD": 85
+  },
+  "label_distribution_by_ticker": {
+    "ABBV": {
+      "BUY": 1
+    },
+    "ABT": {
+      "BUY": 3
+    },
+    "ACN": {
+      "BUY": 1
+    },
+    "ADI": {
+      "BUY": 5
+    },
+    "ADM": {
+      "BUY": 7,
+      "SELL": 1
+    },
+    "AEE": {
+      "BUY": 1
+    },
+    "AES": {
+      "BUY": 8,
+      "HOLD": 1
+    },
+    "AMAT": {
+      "BUY": 4,
+      "SELL": 3,
+      "HOLD": 2
+    },
+    "AMT": {
+      "HOLD": 1
+    },
+    "ANET": {
+      "BUY": 31,
+      "SELL": 11,
+      "HOLD": 5
+    },
+    "APD": {
+      "BUY": 15
+    },
+    "APTV": {
+      "SELL": 1
+    },
+    "AVGO": {
+      "SELL": 6,
+      "HOLD": 3,
+      "BUY": 1
+    },
+    "BA": {
+      "SELL": 26,
+      "BUY": 19,
+      "HOLD": 10
+    },
+    "BBY": {
+      "HOLD": 1
+    },
+    "BLDR": {
+      "SELL": 6
+    },
+    "BX": {
+      "HOLD": 1,
+      "SELL": 1
+    },
+    "CAG": {
+      "BUY": 2
+    },
+    "CCL": {
+      "SELL": 6
+    },
+    "CDW": {
+      "SELL": 1
+    },
+    "CI": {
+      "SELL": 2,
+      "BUY": 2
+    },
+    "CLX": {
+      "SELL": 2,
+      "BUY": 1
+    },
+    "CME": {
+      "SELL": 3,
+      "BUY": 3
+    },
+    "CNC": {
+      "BUY": 20,
+      "SELL": 4,
+      "HOLD": 2
+    },
+    "CVS": {
+      "BUY": 5,
+      "HOLD": 1
+    },
+    "DAL": {
+      "BUY": 1
+    },
+    "DECK": {
+      "BUY": 2,
+      "SELL": 2
+    },
+    "DG": {
+      "BUY": 7
+    },
+    "DVA": {
+      "SELL": 5
+    },
+    "EOG": {
+      "SELL": 4
+    },
+    "F": {
+      "BUY": 1
+    },
+    "FSLR": {
+      "BUY": 3
+    },
+    "FTNT": {
+      "BUY": 12,
+      "SELL": 12,
+      "HOLD": 2
+    },
+    "GILD": {
+      "SELL": 3
+    },
+    "GRMN": {
+      "SELL": 3,
+      "BUY": 1,
+      "HOLD": 1
+    },
+    "HPQ": {
+      "SELL": 8,
+      "HOLD": 1
+    },
+    "HRL": {
+      "SELL": 1
+    },
+    "INCY": {
+      "SELL": 5
+    },
+    "ISRG": {
+      "SELL": 1
+    },
+    "KLAC": {
+      "SELL": 6,
+      "BUY": 5,
+      "HOLD": 5
+    },
+    "LRCX": {
+      "BUY": 5,
+      "SELL": 3,
+      "HOLD": 2
+    },
+    "META": {
+      "SELL": 8,
+      "BUY": 4
+    },
+    "MU": {
+      "BUY": 9,
+      "SELL": 2
+    },
+    "NEM": {
+      "SELL": 4,
+      "BUY": 2
+    },
+    "NFLX": {
+      "BUY": 4
+    },
+    "NVDA": {
+      "BUY": 32,
+      "SELL": 22,
+      "HOLD": 2
+    },
+    "ORCL": {
+      "BUY": 2
+    },
+    "REGN": {
+      "BUY": 3
+    },
+    "RMD": {
+      "SELL": 11
+    },
+    "SYF": {
+      "SELL": 1
+    },
+    "TER": {
+      "SELL": 2
+    },
+    "TPL": {
+      "BUY": 20,
+      "SELL": 8,
+      "HOLD": 5
+    },
+    "VEEV": {
+      "SELL": 6,
+      "HOLD": 2,
+      "BUY": 1
+    },
+    "VRTX": {
+      "BUY": 4,
+      "SELL": 1
+    },
+    "WDC": {
+      "HOLD": 1
+    }
+  },
+  "label_distribution_by_action_before_edl": {
+    "BUY": {
+      "BUY": 153,
+      "SELL": 128,
+      "HOLD": 32
+    },
+    "HOLD": {
+      "HOLD": 37
+    },
+    "SELL": {
+      "BUY": 94,
+      "SELL": 63,
+      "HOLD": 16
+    }
+  },
+  "confusion_action_before_edl_vs_cf_label": {
+    "BUY": {
+      "BUY": 153,
+      "HOLD": 32,
+      "SELL": 128,
+      "UNAVAILABLE": 1
+    },
+    "HOLD": {
+      "BUY": 0,
+      "HOLD": 37,
+      "SELL": 0,
+      "UNAVAILABLE": 0
+    },
+    "REBALANCE": {
+      "BUY": 0,
+      "HOLD": 0,
+      "SELL": 0,
+      "UNAVAILABLE": 30
+    },
+    "SELL": {
+      "BUY": 94,
+      "HOLD": 16,
+      "SELL": 63,
+      "UNAVAILABLE": 0
+    }
+  },
+  "mean_future_return_pct_by_label": {
+    "HOLD": 1.2204,
+    "BUY": 11.548,
+    "SELL": -6.6745
+  },
+  "mean_future_max_drawdown_pct_by_label": {
+    "HOLD": -6.1067,
+    "BUY": -1.6378,
+    "SELL": -9.9249
+  },
+  "output_csv_path": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/audit/combined_with_counterfactual_labels.csv",
+  "warnings": [],
+  "caveat": "Do not use this labeled file for tuning if it is from the final evaluation period.",
+  "edl_a_training_ready": true,
+  "label_availability_pct": 94.4,
+  "phase_b3_input_path": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/audit/combined_with_counterfactual_labels.csv",
+  "run_id": "2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production"
+}--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/config/source_run_metadata.json ---
+{
+  "b1_run_id": "2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production",
+  "b1_audit_csv": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production/audit/combined_iqn_hierarchical_decision_by_step.csv",
+  "b1_input_rows": 554,
+  "b1_input_cols": 77,
+  "b1_universe": "sp500",
+  "b1_eval_start": "2024-01-01",
+  "b1_eval_end": "2026-05-26",
+  "b1_strategy": "balanced_v1",
+  "b1_iqn_checkpoint": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_132218_d_iqn_dss_iqn_learning_curve_smoke_test/models/iqn_learning_curve_model.pt",
+  "b1_iqn_run_id": "2026_05_28_132218_d_iqn_dss_iqn_learning_curve_smoke_test",
+  "b1_data_file": "data/market/daily/imports/market_data_full_500.csv",
+  "b1_run_directory": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production"
+}--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/config/oracle_config.json ---
+{
+  "source_combined_run_id": "2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production",
+  "horizon_days": 20,
+  "drawdown_lambda": 0.5,
+  "min_label_margin": 0.005,
+  "class_space": [
+    "HOLD",
+    "BUY",
+    "SELL"
+  ],
+  "market_data_file": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/data/market/daily/imports/market_data_full_500.csv",
+  "run_start": "2026-05-28T14:42:13.866917"
+}--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/summary/oracle_summary.json ---
+{
+  "source_combined_run_id": "2026_05_28_141909_d_iqn_dss_combined_iqn_hdp_audit_production",
+  "market_data_file": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/data/market/daily/imports/market_data_full_500.csv",
+  "class_space": [
+    "HOLD",
+    "BUY",
+    "SELL"
+  ],
+  "horizon_days": 20,
+  "parameters": {
+    "drawdown_lambda": 0.5,
+    "min_label_margin": 0.005
+  },
+  "total_rows": 554,
+  "labeled_rows": 523,
+  "unavailable_rows": 31,
+  "ambiguous_rows": 0,
+  "label_distribution": {
+    "BUY": 247,
+    "SELL": 191,
+    "HOLD": 85
+  },
+  "label_distribution_by_ticker": {
+    "ABBV": {
+      "BUY": 1
+    },
+    "ABT": {
+      "BUY": 3
+    },
+    "ACN": {
+      "BUY": 1
+    },
+    "ADI": {
+      "BUY": 5
+    },
+    "ADM": {
+      "BUY": 7,
+      "SELL": 1
+    },
+    "AEE": {
+      "BUY": 1
+    },
+    "AES": {
+      "BUY": 8,
+      "HOLD": 1
+    },
+    "AMAT": {
+      "BUY": 4,
+      "SELL": 3,
+      "HOLD": 2
+    },
+    "AMT": {
+      "HOLD": 1
+    },
+    "ANET": {
+      "BUY": 31,
+      "SELL": 11,
+      "HOLD": 5
+    },
+    "APD": {
+      "BUY": 15
+    },
+    "APTV": {
+      "SELL": 1
+    },
+    "AVGO": {
+      "SELL": 6,
+      "HOLD": 3,
+      "BUY": 1
+    },
+    "BA": {
+      "SELL": 26,
+      "BUY": 19,
+      "HOLD": 10
+    },
+    "BBY": {
+      "HOLD": 1
+    },
+    "BLDR": {
+      "SELL": 6
+    },
+    "BX": {
+      "HOLD": 1,
+      "SELL": 1
+    },
+    "CAG": {
+      "BUY": 2
+    },
+    "CCL": {
+      "SELL": 6
+    },
+    "CDW": {
+      "SELL": 1
+    },
+    "CI": {
+      "SELL": 2,
+      "BUY": 2
+    },
+    "CLX": {
+      "SELL": 2,
+      "BUY": 1
+    },
+    "CME": {
+      "SELL": 3,
+      "BUY": 3
+    },
+    "CNC": {
+      "BUY": 20,
+      "SELL": 4,
+      "HOLD": 2
+    },
+    "CVS": {
+      "BUY": 5,
+      "HOLD": 1
+    },
+    "DAL": {
+      "BUY": 1
+    },
+    "DECK": {
+      "BUY": 2,
+      "SELL": 2
+    },
+    "DG": {
+      "BUY": 7
+    },
+    "DVA": {
+      "SELL": 5
+    },
+    "EOG": {
+      "SELL": 4
+    },
+    "F": {
+      "BUY": 1
+    },
+    "FSLR": {
+      "BUY": 3
+    },
+    "FTNT": {
+      "BUY": 12,
+      "SELL": 12,
+      "HOLD": 2
+    },
+    "GILD": {
+      "SELL": 3
+    },
+    "GRMN": {
+      "SELL": 3,
+      "BUY": 1,
+      "HOLD": 1
+    },
+    "HPQ": {
+      "SELL": 8,
+      "HOLD": 1
+    },
+    "HRL": {
+      "SELL": 1
+    },
+    "INCY": {
+      "SELL": 5
+    },
+    "ISRG": {
+      "SELL": 1
+    },
+    "KLAC": {
+      "SELL": 6,
+      "BUY": 5,
+      "HOLD": 5
+    },
+    "LRCX": {
+      "BUY": 5,
+      "SELL": 3,
+      "HOLD": 2
+    },
+    "META": {
+      "SELL": 8,
+      "BUY": 4
+    },
+    "MU": {
+      "BUY": 9,
+      "SELL": 2
+    },
+    "NEM": {
+      "SELL": 4,
+      "BUY": 2
+    },
+    "NFLX": {
+      "BUY": 4
+    },
+    "NVDA": {
+      "BUY": 32,
+      "SELL": 22,
+      "HOLD": 2
+    },
+    "ORCL": {
+      "BUY": 2
+    },
+    "REGN": {
+      "BUY": 3
+    },
+    "RMD": {
+      "SELL": 11
+    },
+    "SYF": {
+      "SELL": 1
+    },
+    "TER": {
+      "SELL": 2
+    },
+    "TPL": {
+      "BUY": 20,
+      "SELL": 8,
+      "HOLD": 5
+    },
+    "VEEV": {
+      "SELL": 6,
+      "HOLD": 2,
+      "BUY": 1
+    },
+    "VRTX": {
+      "BUY": 4,
+      "SELL": 1
+    },
+    "WDC": {
+      "HOLD": 1
+    }
+  },
+  "label_distribution_by_action_before_edl": {
+    "BUY": {
+      "BUY": 153,
+      "SELL": 128,
+      "HOLD": 32
+    },
+    "HOLD": {
+      "HOLD": 37
+    },
+    "SELL": {
+      "BUY": 94,
+      "SELL": 63,
+      "HOLD": 16
+    }
+  },
+  "confusion_action_before_edl_vs_cf_label": {
+    "BUY": {
+      "BUY": 153,
+      "HOLD": 32,
+      "SELL": 128,
+      "UNAVAILABLE": 1
+    },
+    "HOLD": {
+      "BUY": 0,
+      "HOLD": 37,
+      "SELL": 0,
+      "UNAVAILABLE": 0
+    },
+    "REBALANCE": {
+      "BUY": 0,
+      "HOLD": 0,
+      "SELL": 0,
+      "UNAVAILABLE": 30
+    },
+    "SELL": {
+      "BUY": 94,
+      "HOLD": 16,
+      "SELL": 63,
+      "UNAVAILABLE": 0
+    }
+  },
+  "mean_future_return_pct_by_label": {
+    "HOLD": 1.2204,
+    "BUY": 11.548,
+    "SELL": -6.6745
+  },
+  "mean_future_max_drawdown_pct_by_label": {
+    "HOLD": -6.1067,
+    "BUY": -1.6378,
+    "SELL": -9.9249
+  },
+  "output_csv_path": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/audit/combined_with_counterfactual_labels.csv",
+  "warnings": [],
+  "caveat": "Do not use this labeled file for tuning if it is from the final evaluation period.",
+  "edl_a_training_ready": true,
+  "label_availability_pct": 94.4,
+  "phase_b3_input_path": "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/audit/combined_with_counterfactual_labels.csv",
+  "run_id": "2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production"
+}--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/wandb/run-20260528_144219-6t0hrknu/files/wandb-metadata.json ---
+{
+  "os":  "Linux-6.8.0-111-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.13",
+  "startedAt":  "2026-05-28T12:42:19.365374Z",
+  "program":  "-m stock_investment_dss.runner.run_edl_counterfactual_hindsight_labeling_production",
+  "git":  {
+    "remote":  "https://github.com/guldmand/StockInvestmentDSS",
+    "commit":  "2b6bf139e49be19ae6304bd9470dfe4c0856f3a8"
+  },
+  "email":  "guruguldmand@gmail.com",
+  "root":  "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production",
+  "host":  "guldmand-gpu",
+  "executable":  "/home/guldmand/DataScience/conda_envs/ml/bin/python",
+  "cpu_count":  4,
+  "cpu_count_logical":  8,
+  "gpu":  "NVIDIA GeForce GTX 1080",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1967317549056",
+      "used":  "305609908224"
+    }
+  },
+  "memory":  {
+    "total":  "33621078016"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce GTX 1080",
+      "memoryTotal":  "8589934592",
+      "cudaCores":  2560,
+      "architecture":  "Pascal",
+      "uuid":  "GPU-0103e853-cbf0-124c-4cfe-325e4b46f8cb"
+    }
+  ],
+  "cudaVersion":  "13.0",
+  "writerId":  "g3u3eeu9d1m9kfzxtxn1g9alzox51h6o"
+}--- outputs/runs/2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production/wandb/run-20260528_144219-6t0hrknu/files/wandb-summary.json ---
+{"oracle_label_pct_sell":0.3447653429602888,"oracle_label_pct_hold":0.15342960288808663,"_wandb":{"runtime":1},"oracle_labeled_rows":523,"oracle_unavailable_rows":31,"_timestamp":1.779972142408759e+09,"oracle_label_pct_buy":0.44584837545126355,"_runtime":1,"oracle_label_availability_pct":94.4,"oracle_total_rows":554,"oracle_ambiguous_rows":0,"_step":0}
+=== audit-mappe indhold ===
+combined_with_counterfactual_labels.csv

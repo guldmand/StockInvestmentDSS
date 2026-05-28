@@ -159,3 +159,115 @@ Traceback (most recent call last):
     "device": torch.device(requested_device),
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 RuntimeError: Expected one of cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone device type at start of device string: auto
+2026-05-28 02:08:23,667 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1928, in main
+    daily_data_result = load_or_create_finrl_daily_dataset(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/data/finrl_data_pipeline.py", line 1023, in load_or_create_finrl_daily_dataset
+    _raise_if_incomplete(
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/data/finrl_data_pipeline.py", line 708, in _raise_if_incomplete
+    raise RuntimeError(
+RuntimeError: FinRL-generated local import produced an incomplete dataset. missing_required_tickers=['ABNB', 'ANSS', 'BIO', 'BWA', 'CARR', 'CE', 'CEG', 'CMA', 'CRWD', 'CTRA', 'CTVA', 'CZR', 'DAY', 'DELL', 'DFS', 'DOW', 'EMN', 'ENPH', 'ETSY', 'FI', 'FMC', 'FOX', 'FOXA', 'FTV', 'GEHC', 'GEV', 'HES', 'HOLX', 'HWM', 'INVH', 'IPG', 'IR', 'JNPR', 'K', 'KMX', 'KVUE', 'LKQ', 'LW', 'MHK', 'MKTX', 'MMC', 'MOH', 'MRNA', 'MRO', 'MTCH', 'OTIS', 'PARA', 'PAYC', 'PLTR', 'QRVO', 'SOLV', 'TFX', 'UBER', 'VICI', 'VLTO', 'VST', 'WBA'], failed_tickers=[], error_by_ticker={}
+2026-05-28 02:40:35,791 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1928, in main
+    daily_data_result = load_or_create_finrl_daily_dataset(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/data/finrl_data_pipeline.py", line 1023, in load_or_create_finrl_daily_dataset
+    _raise_if_incomplete(
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/data/finrl_data_pipeline.py", line 708, in _raise_if_incomplete
+    raise RuntimeError(
+RuntimeError: FinRL-generated local import produced an incomplete dataset. missing_required_tickers=['ABNB', 'ANSS', 'BIO', 'BWA', 'CARR', 'CE', 'CEG', 'CMA', 'CRWD', 'CTRA', 'CTVA', 'CZR', 'DAY', 'DELL', 'DFS', 'DOW', 'EMN', 'ENPH', 'ETSY', 'FI', 'FMC', 'FOX', 'FOXA', 'FTV', 'GEHC', 'GEV', 'HES', 'HOLX', 'HWM', 'INVH', 'IPG', 'IR', 'JNPR', 'K', 'KMX', 'KVUE', 'LKQ', 'LW', 'MHK', 'MKTX', 'MMC', 'MOH', 'MRNA', 'MRO', 'MTCH', 'OTIS', 'PARA', 'PAYC', 'PLTR', 'QRVO', 'SOLV', 'TFX', 'UBER', 'VICI', 'VLTO', 'VST', 'WBA'], failed_tickers=[], error_by_ticker={}
+2026-05-28 02:49:29,467 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 26, in load_finrl_stock_trading_env_class
+    from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+ModuleNotFoundError: No module named 'finrl'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1976, in main
+    train_env, prepared_train_data, train_env_metadata = create_discrete_finrl_env(
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1235, in create_discrete_finrl_env
+    finrl_env, prepared_data, finrl_env_metadata = create_finrl_stock_trading_env(
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 110, in create_finrl_stock_trading_env
+    StockTradingEnv = load_finrl_stock_trading_env_class()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 28, in load_finrl_stock_trading_env_class
+    raise ImportError(
+ImportError: Could not import FinRL StockTradingEnv. Make sure FinRL is installed in the active environment.
+2026-05-28 02:50:53,024 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 26, in load_finrl_stock_trading_env_class
+    from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/external/FinRL/finrl/__init__.py", line 3, in <module>
+    from finrl.test import test
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/external/FinRL/finrl/test.py", line 8, in <module>
+    from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/external/FinRL/finrl/meta/env_stock_trading/env_stocktrading.py", line 12, in <module>
+    from stable_baselines3.common.vec_env import DummyVecEnv
+ModuleNotFoundError: No module named 'stable_baselines3'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1976, in main
+    train_env, prepared_train_data, train_env_metadata = create_discrete_finrl_env(
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1235, in create_discrete_finrl_env
+    finrl_env, prepared_data, finrl_env_metadata = create_finrl_stock_trading_env(
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 110, in create_finrl_stock_trading_env
+    StockTradingEnv = load_finrl_stock_trading_env_class()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 28, in load_finrl_stock_trading_env_class
+    raise ImportError(
+ImportError: Could not import FinRL StockTradingEnv. Make sure FinRL is installed in the active environment.
+2026-05-28 02:53:24,478 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 26, in load_finrl_stock_trading_env_class
+    from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/external/FinRL/finrl/meta/env_stock_trading/env_stocktrading.py", line 12, in <module>
+    from stable_baselines3.common.vec_env import DummyVecEnv
+ModuleNotFoundError: No module named 'stable_baselines3'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1976, in main
+    train_env, prepared_train_data, train_env_metadata = create_discrete_finrl_env(
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1235, in create_discrete_finrl_env
+    finrl_env, prepared_data, finrl_env_metadata = create_finrl_stock_trading_env(
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 110, in create_finrl_stock_trading_env
+    StockTradingEnv = load_finrl_stock_trading_env_class()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 28, in load_finrl_stock_trading_env_class
+    raise ImportError(
+ImportError: Could not import FinRL StockTradingEnv. Make sure FinRL is installed in the active environment.
+2026-05-28 12:51:16,551 | ERROR | stock_investment_dss.system | StockInvestmentDSS IQN learning curve smoke test failed.
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 26, in load_finrl_stock_trading_env_class
+    from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+ModuleNotFoundError: No module named 'finrl'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1976, in main
+    train_env, prepared_train_data, train_env_metadata = create_discrete_finrl_env(
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/runner/run_iqn_learning_curve_smoke_test.py", line 1235, in create_discrete_finrl_env
+    finrl_env, prepared_data, finrl_env_metadata = create_finrl_stock_trading_env(
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 110, in create_finrl_stock_trading_env
+    StockTradingEnv = load_finrl_stock_trading_env_class()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/research/iqn/FinRL_IQN/src/stock_investment_dss/environments/finrl_env_factory.py", line 28, in load_finrl_stock_trading_env_class
+    raise ImportError(
+ImportError: Could not import FinRL StockTradingEnv. Make sure FinRL is installed in the active environment.

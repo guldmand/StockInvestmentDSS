@@ -85,6 +85,7 @@ from stock_investment_dss.experiment_tracking.wandb_tracking import (  # noqa: E
     init_wandb_run,
     wandb_log,
 )
+from stock_investment_dss.data.ticker_universes import SP500_TICKERS  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Universe registry
@@ -104,11 +105,13 @@ _UNIVERSE_TICKERS: dict[str, list[str]] = {
         "WMT",
         "PG",
     ],
+    "sp500": list(SP500_TICKERS),
 }
 
 _UNIVERSE_DATA_FILE: dict[str, str] = {
     "demo_5": "data/market/daily/imports/market_data_demo5_2010_2026.csv",
     "demo_10_new": "data/market/daily/imports/market_data_demo10_new_2010_2026.csv",
+    "sp500": "data/market/daily/imports/market_data_full_500.csv",
 }
 
 # EDL action name → integer label mapping
@@ -538,6 +541,7 @@ def main() -> int:
         "strategy": args.strategy,
         "iqn_checkpoint": str(iqn_ckpt),
         "iqn_run_id": iqn_data.run_id,
+        "data_file": _UNIVERSE_DATA_FILE.get(args.universe, ""),
         "run_directory": str(run_paths.run_directory),
         "run_start": run_start.isoformat(),
     }

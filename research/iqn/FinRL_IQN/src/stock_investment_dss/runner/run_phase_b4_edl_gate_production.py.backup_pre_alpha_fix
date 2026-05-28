@@ -84,9 +84,9 @@ from stock_investment_dss.decision.investor_risk_profile import InvestorRiskProf
 # ============================================================================
 # Constants
 # ============================================================================
-ACTION_NAMES_3CLASS = ["HOLD", "BUY", "SELL"]  # FIX: must match training (B.6.3 used HOLD=0, BUY=1, SELL=2)
-ACTION_TO_IDX = {"HOLD": 0, "BUY": 1, "SELL": 2}  # FIX: must match training
-IDX_TO_ACTION = {0: "HOLD", 1: "BUY", 2: "SELL"}  # FIX: must match training
+ACTION_NAMES_3CLASS = ["BUY", "SELL", "HOLD"]
+ACTION_TO_IDX = {"BUY": 0, "SELL": 1, "HOLD": 2}
+IDX_TO_ACTION = {0: "BUY", 1: "SELL", 2: "HOLD"}
 
 # 56 features (same as B.3 v3 training — excluded leakage-prone columns)
 _EXCLUDE_PREFIXES = ("edl_a_", "edl_b_", "edl_c_", "edl_label_")
@@ -292,9 +292,8 @@ def ensemble_predict(models: list, X: np.ndarray, device: torch.device) -> dict:
     per_fold_preds = []  # list of (N,) arrays
     with torch.no_grad():
         for model in models:
-            # FIX: model() already returns alpha = evidence + 1 (see forward()); do not add +1 again
-
-            alpha = model(X_t).cpu().numpy()  # (N, K) non-negative
+            evidence = model(X_t).cpu().numpy()  # (N, K) non-negative
+            alpha = evidence + 1.0
             per_fold_evidence.append(alpha)
             pred = np.argmax(alpha, axis=1)
             per_fold_preds.append(pred)

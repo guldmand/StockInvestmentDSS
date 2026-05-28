@@ -1,0 +1,90 @@
+======================================================================
+  ensemble_10fold
+======================================================================
+  N rows:                105
+  Overall mean vacuity:  0.3800
+
+  --- Per-klasse vacuity (grupperet på SAND klasse) ---
+            count    mean     std
+true_label                       
+BUY            50  0.3852  0.0619
+HOLD           17  0.3307  0.1299
+SELL           38  0.3952  0.0643
+
+  --- Per-klasse vacuity (grupperet på FORUDSAGT klasse) ---
+            count    mean     std
+pred_label                       
+BUY            54  0.3814  0.0699
+HOLD           12  0.3087  0.1402
+SELL           39  0.4000  0.0539
+
+  --- VIGTIGT: Vacuity for CORRECT vs INCORRECT ---
+  Correct   (n= 74):  mean vacuity = 0.3621, std = 0.0782
+  Incorrect (n= 31):  mean vacuity = 0.4227, std = 0.0672
+  Gap (incorrect - correct):     +0.0606   (positiv = modellen ER mere usikker når den tager fejl, GODT)
+
+  --- Per-klasse: correct vs incorrect vacuity ---
+    HOLD : correct n= 7 vac=0.2025  |  incorrect n=10 vac=0.4205
+    BUY  : correct n=41 vac=0.3739  |  incorrect n= 9 vac=0.4367
+    SELL : correct n=26 vac=0.3865  |  incorrect n=12 vac=0.4141
+
+======================================================================
+  single_best_fold
+======================================================================
+  N rows:                105
+  Overall mean vacuity:  0.3875
+
+  --- Per-klasse vacuity (grupperet på SAND klasse) ---
+            count    mean     std
+true_label                       
+BUY            50  0.3961  0.0909
+HOLD           17  0.3394  0.1553
+SELL           38  0.3978  0.0911
+
+  --- Per-klasse vacuity (grupperet på FORUDSAGT klasse) ---
+            count    mean     std
+pred_label                       
+BUY            53  0.3899  0.0970
+HOLD            9  0.2588  0.1418
+SELL           43  0.4115  0.0874
+
+  --- VIGTIGT: Vacuity for CORRECT vs INCORRECT ---
+  Correct   (n= 70):  mean vacuity = 0.3589, std = 0.0997
+  Incorrect (n= 35):  mean vacuity = 0.4447, std = 0.0919
+  Gap (incorrect - correct):     +0.0858   (positiv = modellen ER mere usikker når den tager fejl, GODT)
+
+  --- Per-klasse: correct vs incorrect vacuity ---
+    HOLD : correct n= 7 vac=0.1926  |  incorrect n=10 vac=0.4421
+    BUY  : correct n=37 vac=0.3724  |  incorrect n=13 vac=0.4635
+    SELL : correct n=26 vac=0.3845  |  incorrect n=12 vac=0.4266
+
+======================================================================
+  single_final_full_trainstar
+======================================================================
+  N rows:                105
+  Overall mean vacuity:  0.3543
+
+  --- Per-klasse vacuity (grupperet på SAND klasse) ---
+            count    mean     std
+true_label                       
+BUY            50  0.3609  0.1219
+HOLD           17  0.3094  0.1352
+SELL           38  0.3656  0.0977
+
+  --- Per-klasse vacuity (grupperet på FORUDSAGT klasse) ---
+            count    mean     std
+pred_label                       
+BUY            52  0.3443  0.1058
+HOLD           17  0.3301  0.1764
+SELL           36  0.3801  0.0936
+
+  --- VIGTIGT: Vacuity for CORRECT vs INCORRECT ---
+  Correct   (n= 68):  mean vacuity = 0.3278, std = 0.1077
+  Incorrect (n= 37):  mean vacuity = 0.4029, std = 0.1181
+  Gap (incorrect - correct):     +0.0752   (positiv = modellen ER mere usikker når den tager fejl, GODT)
+
+  --- Per-klasse: correct vs incorrect vacuity ---
+    HOLD : correct n= 8 vac=0.2228  |  incorrect n= 9 vac=0.3865
+    BUY  : correct n=38 vac=0.3370  |  incorrect n=12 vac=0.4363
+    SELL : correct n=22 vac=0.3499  |  incorrect n=16 vac=0.3871
+

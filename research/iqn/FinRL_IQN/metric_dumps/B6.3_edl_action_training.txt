@@ -1,0 +1,47 @@
+RUN: outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production
+
+=== summary ===
+# Phase B.3 v3 — EDL-A Training Summary
+
+**Run ID:** `2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production`
+**Search mode:** full
+**Duration:** 214.6 min
+**Source B.2:** `2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production`
+
+## Best Configuration
+```json
+{
+  "optimizer": "AdamW",
+  "activation": "GELU",
+  "hidden_dims": [
+    128,
+    64
+  ],
+  "lr": 0.001,
+  "weight_decay": 0.001,
+  "batch_size": 32,
+  "momentum": 0.9,
+  "dropout": 0.2,
+  "kl_lambda_max": 0.1,
+  "max_epochs": 3000,
+  "early_stop_patience": 50,
+  "lr_scheduler_patience": 20
+}
+```
+
+## Phase 4a — 10-fold Ensemble Results
+- CV mean val_acc: **0.704 ± 0.064**
+- Best single fold: **fold 8** (val_acc=0.805)
+
+## Phase 4b — Single Final Model
+- Final val_acc: **0.762**
+- Epochs trained: 172
+
+## Phase 4c — Test Set Comparison (3 Approaches)
+
+| Approach | Accuracy | Brier | Vacuity | Classes |
+|----------|----------|-------|---------|---------|
+| single_best_fold | 0.667 | 0.439 | 0.388 | 3 |
+| ensemble_10fold | 0.705 | 0.414 | 0.380 | 3 |
+| single_final_full_trainstar | 0.648 | 0.485 | 0.354 | 3 |
+=== metrics ===

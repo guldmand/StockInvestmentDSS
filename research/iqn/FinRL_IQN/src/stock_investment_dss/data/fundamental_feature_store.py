@@ -21,12 +21,16 @@ Future integration requirements:
 from __future__ import annotations
 
 import logging
-from datetime import date
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+_FMP_CACHE_BASE = (
+    Path(__file__).resolve().parents[3] / "data" / "api_cache" / "fmp" / "raw"
+)
 
 # ---------------------------------------------------------------------------
 # Placeholder snapshot — demo_5 universe
@@ -308,26 +312,145 @@ def _compute_scores(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# ---------------------------------------------------------------------------
+# FMP cache-backed PIT score builder
+# ---------------------------------------------------------------------------
+
+
+def _build_fmp_pit_store() -> Optional[pd.DataFrame]:
+    """
+    Build PIT fundamental scores from the FMP raw cache for all cached tickers.
+
+    Returns a DataFrame with columns: ticker, sector, industry, available_from,
+    and all _SCORE_COLS.  Returns None if the cache directory is missing or empty.
+    """
+    if not _FMP_CACHE_BASE.exists():
+        return None
+    tickers = sorted(d.name for d in _FMP_CACHE_BASE.iterdir() if d.is_dir())
+    if not tickers:
+        return None
+
+    try:
+        from stock_investment_dss.data.fmp_pit_fundamentals_builder import (
+            FMPPITFundamentalsBuilder,
+        )
+    except ImportError as exc:
+        logger.warning("FMP PIT builder import failed: %s", exc)
+        return None
+
+    try:
+        builder = FMPPITFundamentalsBuilder()
+        pit_df = builder.build(tickers=tickers, period="quarter")
+    except Exception as exc:
+        logger.warning("FMPPITFundamentalsBuilder.build() failed: %s", exc)
+        return None
+
+    if pit_df is None or pit_df.empty:
+        return None
+
+    return _compute_fmp_scores(pit_df)
+
+
+def _compute_fmp_scores(fmp_pit_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Map FMP PIT builder output columns to the score columns expected by
+    FundamentalFeatureStore.  Price-dependent metrics (PE, PS, EV/EBITDA)
+    are unavailable at PIT build time; neutral 0.5 defaults are used.
+    """
+    df = fmp_pit_df.copy()
+
+    # Point-in-time availability timestamp
+    df["available_from"] = pd.to_datetime(df["known_at"], errors="coerce")
+
+    # quality_score and profitability_score: FMP pre-computes these
+    df["quality_score"] = (
+        df.get("quality_score", pd.Series(dtype=float)).fillna(0.5).clip(0, 1)
+    )
+    df["profitability_score"] = (
+        df.get("profitability_score", pd.Series(dtype=float)).fillna(0.5).clip(0, 1)
+    )
+
+    # value_score: use fcf_margin as proxy for FCF yield (no price available PIT)
+    fcf_norm = (
+        df.get("fcf_margin", pd.Series(0.0, index=df.index)).fillna(0.0) / 0.15
+    ).clip(0, 1)
+    df["value_score"] = (0.60 * fcf_norm + 0.40 * 0.5).clip(0, 1)
+
+    # risk_fit_score: balance_sheet_strength_score is debt+current_ratio+fcf composite
+    df["risk_fit_score"] = (
+        df.get("balance_sheet_strength_score", pd.Series(0.5, index=df.index))
+        .fillna(0.5)
+        .clip(0, 1)
+    )
+
+    # valuation_score: neutral — requires price data not available at PIT
+    df["valuation_score"] = 0.5
+
+    # strategy_fit_score: composite of available scores
+    df["strategy_fit_score"] = (
+        0.25 * df["quality_score"]
+        + 0.25 * df["profitability_score"]
+        + 0.25 * df["value_score"]
+        + 0.25 * df["valuation_score"]
+    ).clip(0, 1)
+
+    df["source"] = "fmp_cache"
+    return df
+
+
+def _get_fmp_scores_as_of(
+    fmp_store: pd.DataFrame, decision_date: str, tickers: Optional[list] = None
+) -> pd.DataFrame:
+    """Return latest FMP score row per ticker as of decision_date."""
+    cutoff = pd.Timestamp(decision_date)
+    visible = fmp_store[fmp_store["available_from"] <= cutoff]
+    if visible.empty:
+        return pd.DataFrame()
+    if tickers is not None:
+        visible = visible[visible["ticker"].isin(tickers)]
+    if visible.empty:
+        return pd.DataFrame()
+    return (
+        visible.sort_values("available_from")
+        .groupby("ticker")
+        .tail(1)
+        .reset_index(drop=True)
+    )
+
+
 class FundamentalFeatureStore:
     """
-    Provides frozen fundamental feature snapshots for the PoC.
+    Provides fundamental feature snapshots for the PoC.
+
+    Primary source: FMP raw cache (all tickers with cached quarterly statements).
+    Fallback: frozen placeholder snapshots for the demo_5 universe.
 
     Point-in-time discipline: only rows where available_from <= decision_date
     are returned, preventing look-ahead bias.
-
-    FUTURE WORK:
-        Replace `_PLACEHOLDER_FUNDAMENTALS` with cached FMP/SDU snapshots
-        fetched before the backtest loop. Do NOT call live FMP APIs inside
-        the backtest step — this violates point-in-time discipline and
-        introduces look-ahead bias.
     """
 
     def __init__(self) -> None:
+        # Placeholder fallback (demo_5 universe)
         raw = pd.DataFrame(_PLACEHOLDER_FUNDAMENTALS)
         raw["available_from"] = pd.to_datetime(raw["available_from"])
         raw["fiscal_date"] = pd.to_datetime(raw["fiscal_date"])
         raw["report_date"] = pd.to_datetime(raw["report_date"])
         self._store: pd.DataFrame = _compute_scores(raw)
+
+        # Primary: FMP cache-backed PIT store (built once at init)
+        self._fmp_store: Optional[pd.DataFrame] = None
+        try:
+            self._fmp_store = _build_fmp_pit_store()
+            if self._fmp_store is not None and not self._fmp_store.empty:
+                n = self._fmp_store["ticker"].nunique()
+                logger.info(
+                    "FundamentalFeatureStore: loaded FMP PIT data for %d tickers", n
+                )
+        except Exception as exc:
+            logger.warning(
+                "FundamentalFeatureStore: FMP PIT build failed — using placeholder only: %s",
+                exc,
+            )
 
     @property
     def all_tickers(self) -> list[str]:
@@ -364,10 +487,33 @@ class FundamentalFeatureStore:
         """
         Return a compact score table (ticker + all score columns) as of decision_date.
         Optionally filter to *tickers* list.
+
+        Priority: FMP cache data (if available) → placeholder fallback.
         """
-        df = self.get_as_of(decision_date)
-        if tickers is not None:
-            df = df[df["ticker"].isin(tickers)]
         cols = ["ticker", "sector", "industry"] + _SCORE_COLS
-        present = [c for c in cols if c in df.columns]
-        return df[present].reset_index(drop=True)
+
+        # 1. FMP cache rows
+        fmp_rows = pd.DataFrame()
+        if self._fmp_store is not None and not self._fmp_store.empty:
+            fmp_rows = _get_fmp_scores_as_of(self._fmp_store, decision_date, tickers)
+
+        # 2. Placeholder rows for tickers not covered by FMP
+        placeholder_df = self.get_as_of(decision_date)
+        if tickers is not None:
+            placeholder_df = placeholder_df[placeholder_df["ticker"].isin(tickers)]
+        if not fmp_rows.empty:
+            fmp_tickers = set(fmp_rows["ticker"].tolist())
+            placeholder_df = placeholder_df[~placeholder_df["ticker"].isin(fmp_tickers)]
+
+        # 3. Merge and return
+        parts = []
+        if not fmp_rows.empty:
+            present = [c for c in cols if c in fmp_rows.columns]
+            parts.append(fmp_rows[present])
+        if not placeholder_df.empty:
+            present = [c for c in cols if c in placeholder_df.columns]
+            parts.append(placeholder_df[present])
+
+        if not parts:
+            return pd.DataFrame(columns=cols)
+        return pd.concat(parts, ignore_index=True).reset_index(drop=True)

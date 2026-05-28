@@ -211,7 +211,7 @@ class IQNConfig:
     )
     use_layer_norm: bool = field(
         default_factory=lambda: _env_bool(
-            "STOCK_INVESTMENT_DSS_IQN_USE_LAYER_NORM", False
+            "STOCK_INVESTMENT_DSS_IQN_USE_LAYER_NORM", True
         )
     )
 

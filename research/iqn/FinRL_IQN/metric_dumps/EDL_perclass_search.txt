@@ -1,0 +1,509 @@
+########## EDL run: filtræ (json + csv + plots) ##########
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_approach_comparison.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_confusion_matrix_ensemble_10fold.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_confusion_matrix_single_best_fold.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_confusion_matrix_single_final_full_trainstar.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_predictions_ensemble.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_predictions_single_best_fold.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_predictions_single_final.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/config/training_config.json
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/data/cv_fold_assignments.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/data/train_test_split.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/best_config.json
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/phase1_optimizer_search.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/phase2_base_tmp.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/phase2_optimizer_tuning.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/phase3_regularization.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_0.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_1.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_2.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_3.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_4.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_5.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_6.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_7.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_8.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_epoch_metrics_fold_9.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4a_per_fold_metrics.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/metrics/phase4b_single_final_per_epoch.csv
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/cv_per_fold_metrics.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/final_lr_schedule.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/final_training_curves.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/hp_search_phase1_heatmap.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/hp_search_phase2_grid.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/hp_search_phase3_grid.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/test_approach_comparison.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/test_confusion_matrix.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/plots/test_uncertainty_distribution.png
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/summary/edl_v3_training_summary.json
+
+########## JSON-filer der nævner precision/recall/f1/confusion/per_class ##########
+outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/summary/edl_v3_training_summary.json
+
+########## Indhold af hver matchende json/csv ##########
+--- outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/summary/edl_v3_training_summary.json ---
+{
+  "run_id": "2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production",
+  "search_mode": "full",
+  "duration_seconds": 12876.7,
+  "duration_minutes": 214.6,
+  "source_b2_run_id": "2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production",
+  "best_config": {
+    "optimizer": "AdamW",
+    "activation": "GELU",
+    "hidden_dims": [
+      128,
+      64
+    ],
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "batch_size": 32,
+    "momentum": 0.9,
+    "dropout": 0.2,
+    "kl_lambda_max": 0.1,
+    "max_epochs": 3000,
+    "early_stop_patience": 50,
+    "lr_scheduler_patience": 20
+  },
+  "phase_4a_cv_mean_acc": 0.7037,
+  "phase_4a_cv_std_acc": 0.0639,
+  "phase_4a_best_fold": 8,
+  "phase_4b_val_acc": 0.7619,
+  "phase_4b_epochs": 172,
+  "test_results": {
+    "single_best_fold": {
+      "accuracy": 0.6667,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.1905,
+      "mean_vacuity": 0.3875,
+      "brier_score": 0.4385,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 9,
+          "precision": 0.7778,
+          "recall": 0.4118
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 53,
+          "precision": 0.6981,
+          "recall": 0.74
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 43,
+          "precision": 0.6047,
+          "recall": 0.6842
+        }
+      ],
+      "confusion_matrix": [
+        [
+          7,
+          5,
+          5
+        ],
+        [
+          1,
+          37,
+          12
+        ],
+        [
+          1,
+          11,
+          26
+        ]
+      ]
+    },
+    "ensemble_10fold": {
+      "accuracy": 0.7048,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.2286,
+      "mean_vacuity": 0.38,
+      "brier_score": 0.4138,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 12,
+          "precision": 0.5833,
+          "recall": 0.4118
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 54,
+          "precision": 0.7593,
+          "recall": 0.82
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 39,
+          "precision": 0.6667,
+          "recall": 0.6842
+        }
+      ],
+      "confusion_matrix": [
+        [
+          7,
+          4,
+          6
+        ],
+        [
+          2,
+          41,
+          7
+        ],
+        [
+          3,
+          9,
+          26
+        ]
+      ]
+    },
+    "single_final_full_trainstar": {
+      "accuracy": 0.6476,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.1714,
+      "mean_vacuity": 0.3543,
+      "brier_score": 0.4847,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 17,
+          "precision": 0.4706,
+          "recall": 0.4706
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 52,
+          "precision": 0.7308,
+          "recall": 0.76
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 36,
+          "precision": 0.6111,
+          "recall": 0.5789
+        }
+      ],
+      "confusion_matrix": [
+        [
+          8,
+          4,
+          5
+        ],
+        [
+          3,
+          38,
+          9
+        ],
+        [
+          6,
+          10,
+          22
+        ]
+      ]
+    }
+  },
+  "n_wandb_runs": 114
+}
+--- outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/audit/edl_v3_test_approach_comparison.csv ---
+approach,accuracy,majority_baseline,accuracy_vs_baseline,mean_vacuity,brier_score,n_classes_predicted
+single_best_fold,0.6667,0.4762,0.1905,0.3875,0.4385,3
+ensemble_10fold,0.7048,0.4762,0.2286,0.38,0.4138,3
+single_final_full_trainstar,0.6476,0.4762,0.1714,0.3543,0.4847,3
+
+
+########## ALLE json-filer i EDL-run (fuld liste, så vi ser hvad der findes) ##########
+=== outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/config/training_config.json ===
+{
+  "source_b2_run_id": "2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production",
+  "search_mode": "full",
+  "total_rows": 523,
+  "train_star_rows": 418,
+  "test_rows": 105,
+  "test_split": 0.2,
+  "cv_folds": 10,
+  "max_epochs": 3000,
+  "hp_search_patience": 20,
+  "final_patience": 50,
+  "lr_scheduler_patience": 20,
+  "seed": 42,
+  "num_classes": 3,
+  "action_classes": [
+    "HOLD",
+    "BUY",
+    "SELL"
+  ],
+  "input_dim": 56,
+  "feature_columns": [
+    "selected_iqn_action_index",
+    "iqn_chosen_action_index",
+    "iqn_q10_hold",
+    "iqn_q25_hold",
+    "iqn_q50_hold",
+    "iqn_q75_hold",
+    "iqn_q90_hold",
+    "iqn_cvar10_hold",
+    "iqn_score_hold",
+    "iqn_mean_hold",
+    "iqn_q10_buy",
+    "iqn_q25_buy",
+    "iqn_q50_buy",
+    "iqn_q75_buy",
+    "iqn_q90_buy",
+    "iqn_cvar10_buy",
+    "iqn_score_buy",
+    "iqn_mean_buy",
+    "iqn_q10_sell",
+    "iqn_q25_sell",
+    "iqn_q50_sell",
+    "iqn_q75_sell",
+    "iqn_q90_sell",
+    "iqn_cvar10_sell",
+    "iqn_score_sell",
+    "iqn_mean_sell",
+    "iqn_q10_rebalance",
+    "iqn_q25_rebalance",
+    "iqn_q50_rebalance",
+    "iqn_q75_rebalance",
+    "iqn_q90_rebalance",
+    "iqn_cvar10_rebalance",
+    "iqn_score_rebalance",
+    "iqn_mean_rebalance",
+    "iqn_q10_changestrategy",
+    "iqn_q25_changestrategy",
+    "iqn_q50_changestrategy",
+    "iqn_q75_changestrategy",
+    "iqn_q90_changestrategy",
+    "iqn_cvar10_changestrategy",
+    "iqn_score_changestrategy",
+    "iqn_mean_changestrategy",
+    "iqn_action_margin",
+    "selected_size_fraction",
+    "ticker_score",
+    "size_score",
+    "price",
+    "ma50",
+    "ma200",
+    "price_vs_ma50",
+    "price_vs_ma200",
+    "momentum_score",
+    "value_score",
+    "quality_score",
+    "risk_score",
+    "cash_weight"
+  ],
+  "all_label_distribution": {
+    "HOLD": 85,
+    "BUY": 247,
+    "SELL": 191
+  },
+  "run_start": "2026-05-28T15:06:06.937743"
+}
+=== outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/hp_search/best_config.json ===
+{
+  "optimizer": "AdamW",
+  "activation": "GELU",
+  "hidden_dims": [
+    128,
+    64
+  ],
+  "lr": 0.001,
+  "weight_decay": 0.001,
+  "batch_size": 32,
+  "momentum": 0.9,
+  "dropout": 0.2,
+  "kl_lambda_max": 0.1,
+  "max_epochs": 3000,
+  "early_stop_patience": 50,
+  "lr_scheduler_patience": 20
+}
+=== outputs/runs/2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production/summary/edl_v3_training_summary.json ===
+{
+  "run_id": "2026_05_28_150606_d_iqn_dss_edl_action_training_v3_production",
+  "search_mode": "full",
+  "duration_seconds": 12876.7,
+  "duration_minutes": 214.6,
+  "source_b2_run_id": "2026_05_28_144213_d_iqn_dss_edl_counterfactual_oracle_production",
+  "best_config": {
+    "optimizer": "AdamW",
+    "activation": "GELU",
+    "hidden_dims": [
+      128,
+      64
+    ],
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "batch_size": 32,
+    "momentum": 0.9,
+    "dropout": 0.2,
+    "kl_lambda_max": 0.1,
+    "max_epochs": 3000,
+    "early_stop_patience": 50,
+    "lr_scheduler_patience": 20
+  },
+  "phase_4a_cv_mean_acc": 0.7037,
+  "phase_4a_cv_std_acc": 0.0639,
+  "phase_4a_best_fold": 8,
+  "phase_4b_val_acc": 0.7619,
+  "phase_4b_epochs": 172,
+  "test_results": {
+    "single_best_fold": {
+      "accuracy": 0.6667,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.1905,
+      "mean_vacuity": 0.3875,
+      "brier_score": 0.4385,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 9,
+          "precision": 0.7778,
+          "recall": 0.4118
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 53,
+          "precision": 0.6981,
+          "recall": 0.74
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 43,
+          "precision": 0.6047,
+          "recall": 0.6842
+        }
+      ],
+      "confusion_matrix": [
+        [
+          7,
+          5,
+          5
+        ],
+        [
+          1,
+          37,
+          12
+        ],
+        [
+          1,
+          11,
+          26
+        ]
+      ]
+    },
+    "ensemble_10fold": {
+      "accuracy": 0.7048,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.2286,
+      "mean_vacuity": 0.38,
+      "brier_score": 0.4138,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 12,
+          "precision": 0.5833,
+          "recall": 0.4118
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 54,
+          "precision": 0.7593,
+          "recall": 0.82
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 39,
+          "precision": 0.6667,
+          "recall": 0.6842
+        }
+      ],
+      "confusion_matrix": [
+        [
+          7,
+          4,
+          6
+        ],
+        [
+          2,
+          41,
+          7
+        ],
+        [
+          3,
+          9,
+          26
+        ]
+      ]
+    },
+    "single_final_full_trainstar": {
+      "accuracy": 0.6476,
+      "majority_baseline": 0.4762,
+      "accuracy_vs_baseline": 0.1714,
+      "mean_vacuity": 0.3543,
+      "brier_score": 0.4847,
+      "n_classes_predicted": 3,
+      "per_class_metrics": [
+        {
+          "class_name": "HOLD",
+          "support": 17,
+          "predicted": 17,
+          "precision": 0.4706,
+          "recall": 0.4706
+        },
+        {
+          "class_name": "BUY",
+          "support": 50,
+          "predicted": 52,
+          "precision": 0.7308,
+          "recall": 0.76
+        },
+        {
+          "class_name": "SELL",
+          "support": 38,
+          "predicted": 36,
+          "precision": 0.6111,
+          "recall": 0.5789
+        }
+      ],
+      "confusion_matrix": [
+        [
+          8,
+          4,
+          5
+        ],
+        [
+          3,
+          38,
+          9
+        ],
+        [
+          6,
+          10,
+          22
+        ]
+      ]
+    }
+  },
+  "n_wandb_runs": 114
+}
