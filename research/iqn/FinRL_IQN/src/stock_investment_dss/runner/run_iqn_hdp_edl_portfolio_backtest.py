@@ -347,13 +347,20 @@ def _run_ablation_loop(
     vacuity: np.ndarray,
     disagreement: np.ndarray,
     gate_config: EDLGateConfig,
-) -> tuple[list[str], list[float]]:
-    """Step through combined_df, return (dates, portfolio_values)."""
+) -> tuple[list[str], list[float], list[dict]]:
+    """Step through combined_df, return (dates, portfolio_values, action_records).
+
+    ``action_records`` holds one dict per trading day with the raw IQN-proposed
+    action and the action this ablation actually executed after HDP/EDL governance.
+    The per-ablation action distribution (dashboard Panel 4) is derived from the
+    ``final_action`` column of these records.
+    """
     obs, _ = unpack_reset_result(env.reset())
     finrl_env = env.finrl_env
 
     dates: list[str] = []
     portfolio_values: list[float] = []
+    action_records: list[dict] = []
 
     use_bypass = ablation in ("a2", "a4")  # bypass DiscreteFinRLDecisionEnv
     use_gate = ablation in ("a3", "a4")
@@ -470,6 +477,15 @@ def _run_ablation_loop(
 
         dates.append(row_date)
         portfolio_values.append(float(pv))
+        action_records.append(
+            {
+                "date": row_date,
+                "iqn_action": str(
+                    getattr(row, "iqn_chosen_action", "HOLD")
+                ).upper(),
+                "final_action": final_action,
+            }
+        )
 
         if done:
             log.info(
@@ -477,7 +493,7 @@ def _run_ablation_loop(
             )
             break
 
-    return dates, portfolio_values
+    return dates, portfolio_values, action_records
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +505,7 @@ def _write_ablation_outputs(
     ablation: str,
     dates: list[str],
     portfolio_values: list[float],
+    action_records: list[dict],
     initial_amount: float,
     output_dir: Path,
 ) -> dict[str, Path]:
@@ -520,9 +537,11 @@ def _write_ablation_outputs(
 
     account_path = abl_dir / "account_values.csv"
     metrics_path = abl_dir / "metrics.csv"
+    actions_path = abl_dir / "actions.csv"
 
     account_df.to_csv(account_path, index=False)
     metrics.to_csv(metrics_path, index=False)
+    pd.DataFrame(action_records).to_csv(actions_path, index=False)
 
     log.info(
         "Ablation %s complete: %d steps, final PV=%.2f, "
@@ -533,7 +552,7 @@ def _write_ablation_outputs(
         float(metrics["total_return_pct"].iloc[0]),
         float(metrics["annualized_sharpe"].iloc[0]),
     )
-    return {"account": account_path, "metrics": metrics_path}
+    return {"account": account_path, "metrics": metrics_path, "actions": actions_path}
 
 
 # ---------------------------------------------------------------------------
@@ -679,7 +698,7 @@ def main() -> int:
         log.info("Running ablation: %s", ablation.upper())
         log.info("=" * 60)
 
-        dates, portfolio_values = _run_ablation_loop(
+        dates, portfolio_values, action_records = _run_ablation_loop(
             ablation=ablation,
             combined_df=combined_df,
             env=env,
@@ -696,6 +715,7 @@ def main() -> int:
             ablation=ablation,
             dates=dates,
             portfolio_values=portfolio_values,
+            action_records=action_records,
             initial_amount=args.initial_amount,
             output_dir=output_dir,
         )

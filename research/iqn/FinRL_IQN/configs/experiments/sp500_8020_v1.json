@@ -1,18 +1,18 @@
 {
   "experiment_id": "sp500_8020_v1",
   "schema_version": "1.0",
-  "description": "Full S&P 500 IQN 25k scale-up with chronological 80/20 train/eval split (train 2016-01-01 -> 2024-04-30, eval 2024-05-01 -> 2026-05-26). Multi-regime eval window chosen to avoid the single-bull-quarter BUY-collapse seen in the earlier 2026-Q1 eval. Mirrors clean_25k_baseline_v1.json hyperparameters (stockdss_long_v1, LayerNorm on, q50 scoring). All experiment-defining values are explicit here; .env must NOT override any of these.",
+  "description": "Full S&P 500 IQN 25k scale-up with chronological train/eval split (train 2016-01-01 -> 2023-12-31, eval 2024-01-01 -> 2026-05-26). Split date 2024-01-01 matches the successful 25k run and the DEMO10 baseline (clean_25k_baseline_v1.json) for direct comparability. Multi-regime eval window chosen to avoid the single-bull-quarter BUY-collapse seen in the earlier 2026-Q1 eval. Mirrors clean_25k_baseline_v1.json hyperparameters (stockdss_long_v1, LayerNorm on, q50 scoring). All experiment-defining values are explicit here; .env must NOT override any of these.",
   "dataset": {
     "dataset_id": "sp500",
-    "pit_split_id": "sp500_pit_8020",
+    "pit_split_id": "sp500_pit_2024",
     "universe_id": "sp500",
     "frozen_market_file": "data/market/daily/imports/market_data_full_500.csv",
     "tickers": "ALL_SP500",
     "train_start": "2016-01-01",
-    "train_end": "2024-04-30",
-    "eval_start": "2024-05-01",
+    "train_end": "2023-12-31",
+    "eval_start": "2024-01-01",
     "eval_end": "2026-05-26",
-    "note": "Frozen CSV (market_data_full_500.csv, 467 tickers, 2566 rows/ticker). No live download. Chronological 80/20 split. tickers=ALL_SP500 means the full universe is read from the frozen file; the explicit ticker list is not pinned here because it is the entire S&P 500 as present in the frozen file."
+    "note": "Frozen CSV (market_data_full_500.csv, 467 tickers, 2566 rows/ticker). No live download. Chronological split at 2024-01-01 (matches the successful run and DEMO10). tickers=ALL_SP500 means the full universe is read from the frozen file; the explicit ticker list is not pinned here because it is the entire S&P 500 as present in the frozen file."
   },
   "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   "iqn": {
@@ -60,12 +60,12 @@
   },
   "env_overrides": {
     "STOCK_INVESTMENT_DSS_DAILY_DATASET_ID": "sp500",
-    "STOCK_INVESTMENT_DSS_PIT_SPLIT_ID": "sp500_pit_8020",
+    "STOCK_INVESTMENT_DSS_PIT_SPLIT_ID": "sp500_pit_2024",
     "STOCK_INVESTMENT_DSS_UNIVERSE_ID": "sp500",
     "STOCK_INVESTMENT_DSS_DAILY_DATA_UNIVERSE": "sp500",
     "STOCK_INVESTMENT_DSS_DAILY_DATA_START": "2016-01-01",
     "STOCK_INVESTMENT_DSS_DAILY_DATA_END": "2026-05-26",
-    "STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME": "2024-05-01",
+    "STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME": "2024-01-01",
     "STOCK_INVESTMENT_DSS_PIT_TRADE_END_DATE": "2026-05-26",
     "STOCK_INVESTMENT_DSS_DAILY_DATA_USE_CACHE": "true",
     "STOCK_INVESTMENT_DSS_FORCE_FINRL_DOWNLOAD": "false",
