@@ -53,17 +53,22 @@ class RiskAwareActionResolver:
         self,
         decision_action: DSSDecisionAction | int,
         state_summary: dict,
+        *,
+        size_hint: float | None = None,
     ) -> ResolvedDSSAction:
+        if size_hint is not None and not (0.0 <= size_hint <= 1.0):
+            raise ValueError(f"size_hint must be in [0.0, 1.0], got {size_hint!r}")
+
         action = DSSDecisionAction(decision_action)
 
         if action == DSSDecisionAction.HOLD:
             return self._resolve_hold(state_summary)
 
         if action == DSSDecisionAction.BUY:
-            return self._resolve_buy(state_summary)
+            return self._resolve_buy(state_summary, size_hint=size_hint)
 
         if action == DSSDecisionAction.SELL:
-            return self._resolve_sell(state_summary)
+            return self._resolve_sell(state_summary, size_hint=size_hint)
 
         if action == DSSDecisionAction.REBALANCE:
             return self._resolve_rebalance(state_summary)
@@ -141,7 +146,9 @@ class RiskAwareActionResolver:
             metadata={"state_summary": state_summary},
         )
 
-    def _resolve_buy(self, state_summary: dict) -> ResolvedDSSAction:
+    def _resolve_buy(
+        self, state_summary: dict, size_hint: float | None = None
+    ) -> ResolvedDSSAction:
         cash = float(state_summary["cash"])
         portfolio_value = float(state_summary["portfolio_value"])
         prices = state_summary["prices"]
@@ -152,10 +159,12 @@ class RiskAwareActionResolver:
             cash - self.risk_profile.min_cash_weight * portfolio_value,
         )
 
-        requested_cash = min(
-            cash * self.risk_profile.max_trade_fraction_of_cash,
-            max_available_cash,
+        _trade_frac = (
+            size_hint
+            if size_hint is not None
+            else self.risk_profile.max_trade_fraction_of_cash
         )
+        requested_cash = min(cash * _trade_frac, max_available_cash)
 
         eligible_tickers = [
             ticker
@@ -224,7 +233,9 @@ class RiskAwareActionResolver:
             },
         )
 
-    def _resolve_sell(self, state_summary: dict) -> ResolvedDSSAction:
+    def _resolve_sell(
+        self, state_summary: dict, size_hint: float | None = None
+    ) -> ResolvedDSSAction:
         holdings = state_summary["holdings"]
         weights = state_summary["position_weights"]
         prices = state_summary["prices"]
@@ -254,10 +265,12 @@ class RiskAwareActionResolver:
         )
 
         current_shares = float(holdings[selected_ticker])
-        requested_shares = max(
-            1,
-            floor(current_shares * self.risk_profile.max_sell_fraction_of_position),
+        _sell_frac = (
+            size_hint
+            if size_hint is not None
+            else self.risk_profile.max_sell_fraction_of_position
         )
+        requested_shares = max(1, floor(current_shares * _sell_frac))
         requested_shares = min(int(current_shares), requested_shares)
 
         submitted_shares = min(requested_shares, self.hmax)

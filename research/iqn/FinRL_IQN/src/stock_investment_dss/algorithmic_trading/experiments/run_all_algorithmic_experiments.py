@@ -52,8 +52,11 @@ from __future__ import annotations
 
 import argparse
 import logging
+import multiprocessing as mp
+import os
 import sys
 import traceback
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -100,6 +103,47 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Fix 1: CSV read-through cache
+# ---------------------------------------------------------------------------
+# Strategy functions call pd.read_csv internally and cannot be modified.
+# Patching pd.read_csv here means every strategy call for the same path
+# returns a .copy() of the DataFrame already in memory — zero disk I/O.
+# With 467 tickers × 24 strategies = 11,208 calls, this eliminates ~56 min
+# of redundant reads (300 ms × 11,208 ≈ 56 min → < 1 s).
+
+_CSV_CACHE: Dict[str, "pd.DataFrame"] = {}
+
+
+def _install_csv_cache() -> None:
+    """Patch pd.read_csv to serve results from an in-process cache.
+
+    Call once in main() *before* the grid runs.  The first pd.read_csv call
+    for a given resolved file path reads from disk and populates the cache;
+    all subsequent calls return a .copy() (filtered to usecols if given).
+    Fork-spawned worker processes inherit the patched function and the
+    populated cache via copy-on-write — no disk reads in workers.
+    """
+    if getattr(pd, "_csv_cache_installed", False):
+        return  # idempotent
+    _orig = pd.read_csv
+
+    def _cached_read_csv(filepath_or_buffer, *args, usecols=None, **kwargs):
+        if not isinstance(filepath_or_buffer, (str, Path)):
+            # StringIO or other file-like — not cacheable
+            return _orig(filepath_or_buffer, *args, usecols=usecols, **kwargs)
+        key = str(Path(filepath_or_buffer).resolve())
+        if key not in _CSV_CACHE:
+            _CSV_CACHE[key] = _orig(filepath_or_buffer, *args, **kwargs)
+        cached = _CSV_CACHE[key]
+        if usecols is not None:
+            return cached[list(usecols)].copy()
+        return cached.copy()
+
+    pd.read_csv = _cached_read_csv  # type: ignore[assignment]
+    pd._csv_cache_installed = True  # type: ignore[attr-defined]
+
 
 # ---------------------------------------------------------------------------
 # Audited 24 single-ticker configurations (V1 evidence confirmed)
@@ -376,14 +420,20 @@ def _write_combined_summary(
     portfolio_records: List[Dict[str, Any]],
     run_paths: RunPaths,
 ) -> Optional[Path]:
-    rows = []
-    for r in ticker_records:
-        rows.append({"scope": "single_ticker", **r})
-    for r in portfolio_records:
-        rows.append({"scope": "portfolio", "ticker": "portfolio", **r})
-    if not rows:
+    # Fix 3: vectorised row construction via pd.concat instead of a Python loop.
+    if not ticker_records and not portfolio_records:
         return None
-    df = pd.DataFrame(rows)
+    dfs: List[pd.DataFrame] = []
+    if ticker_records:
+        df_t = pd.DataFrame(ticker_records)
+        df_t.insert(0, "scope", "single_ticker")
+        dfs.append(df_t)
+    if portfolio_records:
+        df_p = pd.DataFrame(portfolio_records)
+        df_p.insert(0, "scope", "portfolio")
+        df_p["ticker"] = "portfolio"
+        dfs.append(df_p)
+    df = pd.concat(dfs, ignore_index=True)
     out_path = run_paths.summary_directory / "algorithmic_baselines_summary.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.sort_values("total_return_pct", ascending=False, na_position="last").to_csv(
@@ -391,6 +441,91 @@ def _write_combined_summary(
     )
     log.info("Wrote combined summary: %s", out_path)
     return out_path
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: top-level worker function (must be at module scope for pickling)
+# ---------------------------------------------------------------------------
+
+
+def _run_ticker_task(args: tuple) -> List[Dict[str, Any]]:
+    """Run all single-ticker configs for one ticker.
+
+    Receives a plain tuple so multiprocessing.Pool.map can call it without
+    **kwargs.  When dispatched by ProcessPoolExecutor with fork context, the
+    worker process inherits the patched pd.read_csv and the pre-populated
+    _CSV_CACHE from the parent — no disk reads occur here.
+    """
+    (
+        ticker,
+        trade_data_str,
+        dataset_tag,
+        initial_amount,
+        skip_buy_and_hold,
+        continue_on_error,
+        run_paths,
+        pit_start_date,
+        pit_end_date,
+    ) = args
+    records: List[Dict[str, Any]] = []
+    for cfg in SINGLE_TICKER_CONFIGS:
+        if skip_buy_and_hold and cfg["folder"] == "buy_and_hold":
+            continue
+        folder = cfg["folder"]
+        fn = cfg["fn"]
+        params = cfg["params"]
+        log.info("[single-ticker] %s / %s ...", ticker, folder)
+        try:
+            result = fn(
+                trade_data=trade_data_str,  # path string; pd.read_csv hits cache
+                dataset_tag=dataset_tag,
+                ticker=ticker,
+                initial_amount=initial_amount,
+                strategy_folder=folder,
+                run_paths=run_paths,
+                output_subpath=f"algorithmic_baselines/{folder}/{ticker.lower()}",
+                pit_start_date=pit_start_date,
+                pit_end_date=pit_end_date,
+                **params,
+            )
+            m = _read_metrics_row(result.get("metrics"))
+            records.append(
+                {
+                    "ticker": ticker.lower(),
+                    "strategy_type": cfg["type"],
+                    "config_label": folder,
+                    "strategy_folder": folder,
+                    "status": "ok",
+                    "source_metrics_csv": str(result.get("metrics", "")),
+                    **m,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            if continue_on_error:
+                log.warning(
+                    "ERROR %s / %s: %s",
+                    ticker,
+                    folder,
+                    exc,
+                    exc_info=True,
+                )
+                records.append(
+                    {
+                        "ticker": ticker.lower(),
+                        "strategy_type": cfg["type"],
+                        "config_label": folder,
+                        "strategy_folder": folder,
+                        "status": "error",
+                        "total_return_pct": None,
+                        "max_drawdown_pct": None,
+                        "annualized_sharpe": None,
+                        "days": None,
+                        "source_metrics_csv": None,
+                    }
+                )
+            else:
+                raise
+    return records
 
 
 # ---------------------------------------------------------------------------
@@ -410,67 +545,48 @@ def _run_single_ticker_grid(
     run_paths: RunPaths,
     pit_start_date: str | None = None,
     pit_end_date: str | None = None,
+    workers: int = 1,
 ) -> List[Dict[str, Any]]:
-    records = []
-    for ticker in tickers:
-        for cfg in configs:
-            if skip_buy_and_hold and cfg["folder"] == "buy_and_hold":
-                continue
-            folder = cfg["folder"]
-            fn = cfg["fn"]
-            params = cfg["params"]
-            log.info("[single-ticker] %s / %s ...", ticker, folder)
-            try:
-                result = fn(
-                    trade_data=trade_data,
-                    dataset_tag=dataset_tag,
-                    ticker=ticker,
-                    initial_amount=initial_amount,
-                    strategy_folder=folder,
-                    run_paths=run_paths,
-                    output_subpath=f"algorithmic_baselines/{folder}/{ticker.lower()}",
-                    pit_start_date=pit_start_date,
-                    pit_end_date=pit_end_date,
-                    **params,
-                )
-                m = _read_metrics_row(result.get("metrics"))
-                records.append(
-                    {
-                        "ticker": ticker.lower(),
-                        "strategy_type": cfg["type"],
-                        "config_label": folder,
-                        "strategy_folder": folder,
-                        "status": "ok",
-                        "source_metrics_csv": str(result.get("metrics", "")),
-                        **m,
-                    }
-                )
-            except Exception as exc:  # noqa: BLE001
-                if continue_on_error:
-                    log.warning(
-                        "ERROR %s / %s: %s",
-                        ticker,
-                        folder,
-                        exc,
-                        exc_info=True,
-                    )
-                    records.append(
-                        {
-                            "ticker": ticker.lower(),
-                            "strategy_type": cfg["type"],
-                            "config_label": folder,
-                            "strategy_folder": folder,
-                            "status": "error",
-                            "total_return_pct": None,
-                            "max_drawdown_pct": None,
-                            "annualized_sharpe": None,
-                            "days": None,
-                            "source_metrics_csv": None,
-                        }
-                    )
-                else:
-                    raise
-    return records
+    """Run the full single-ticker strategy grid.
+
+    When workers > 1, each ticker is dispatched to a separate worker process
+    (fork context, inheriting the CSV cache) so all available CPU cores are
+    utilised.  The CSV cache installed in main() ensures workers never read
+    from disk.
+    """
+    trade_data_str = str(Path(trade_data).resolve())
+    tasks = [
+        (
+            ticker,
+            trade_data_str,
+            dataset_tag,
+            initial_amount,
+            skip_buy_and_hold,
+            continue_on_error,
+            run_paths,
+            pit_start_date,
+            pit_end_date,
+        )
+        for ticker in tickers
+    ]
+    if workers > 1:
+        log.info(
+            "Parallel dispatch: %d tickers × %d configs on %d workers",
+            len(tickers),
+            len(SINGLE_TICKER_CONFIGS),
+            workers,
+        )
+        ctx = mp.get_context("fork")
+        with ProcessPoolExecutor(max_workers=workers, mp_context=ctx) as executor:
+            nested = list(executor.map(_run_ticker_task, tasks))
+    else:
+        log.info(
+            "Sequential dispatch: %d tickers × %d configs",
+            len(tickers),
+            len(SINGLE_TICKER_CONFIGS),
+        )
+        nested = [_run_ticker_task(t) for t in tasks]
+    return [record for ticker_records in nested for record in ticker_records]
 
 
 def _run_portfolio_grid(
@@ -617,19 +733,28 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="DATE",
         help="PIT trade window end date, exclusive (ISO format, e.g. 2026-12-31).",
     )
+    p.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        metavar="INT",
+        help=(
+            "Number of parallel worker processes for the single-ticker grid. "
+            "Default: os.cpu_count()-1 (leaves one core free). "
+            "Use 1 for fully sequential execution."
+        ),
+    )
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    import os as _os
-
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    pit_start_date = args.pit_start or _os.environ.get(
+    pit_start_date = args.pit_start or os.environ.get(
         "STOCK_INVESTMENT_DSS_PIT_POINT_IN_TIME"
     )
-    pit_end_date = args.pit_end or _os.environ.get(
+    pit_end_date = args.pit_end or os.environ.get(
         "STOCK_INVESTMENT_DSS_PIT_TRADE_END_DATE"
     )
 
@@ -638,9 +763,29 @@ def main(argv: Optional[List[str]] = None) -> int:
         log.error("Trade data not found: %s", trade_data)
         return 1
 
+    # Fix 1: install the CSV cache BEFORE any pd.read_csv call so every
+    # subsequent read (including those inside strategy functions and
+    # trading_metrics.py) returns a .copy() from memory — zero disk I/O.
+    _install_csv_cache()
+
+    # Pre-load the full market data CSV once.  This single disk read populates
+    # the cache; all 11,208 strategy calls then hit the in-memory cache.
+    log.info("Pre-loading market data: %s", trade_data)
+    trade_df = pd.read_csv(trade_data)
+    log.info("Cache warm: %d rows × %d cols", len(trade_df), len(trade_df.columns))
+
+    # Fix 2: worker count — default to cpu_count()-1, minimum 1.
+    workers = (
+        args.workers if args.workers is not None else max(1, (os.cpu_count() or 1) - 1)
+    )
+    log.info("Workers: %d", workers)
+
+    # Discover tickers from the pre-loaded DataFrame (no second disk read).
     if args.ticker.upper() == "ALL":
-        tickers = discover_tickers(trade_data)
-        log.info("Discovered %d tickers: %s", len(tickers), ", ".join(tickers))
+        tickers = sorted(trade_df["tic"].astype(str).str.upper().unique().tolist())
+        log.info("Discovered %d tickers", len(tickers))
+    elif "," in args.ticker:
+        tickers = [t.strip().upper() for t in args.ticker.split(",") if t.strip()]
     else:
         tickers = [args.ticker.upper()]
 
@@ -695,6 +840,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             run_paths=shared_run_paths,
             pit_start_date=pit_start_date,
             pit_end_date=pit_end_date,
+            workers=workers,
         )
 
     if run_portfolio:
