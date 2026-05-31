@@ -1,0 +1,64 @@
+\chapter{Methodology}
+
+This chapter describes how the general theory is shaped into the concrete
+system and how it is evaluated.
+
+\section{Research Design}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Problem Formulation as an MDP}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\paragraph{State space} The state $s_t \in \mathcal{S}$ encodes the information
+available to the agent at decision time $t$. It comprises the normalized price
+window, technical indicators, and the current portfolio allocation, so that
+$s_t = (\mathbf{p}_{t-w:t}, \mathbf{x}_{t-1})$ where $w$ is the lookback length.
+
+\paragraph{Action space} The action $a_t \in \mathcal{A}$ is the discrete trading
+decision applied to each asset, drawn from $\{\textsc{sell}, \textsc{hold},
+\textsc{buy}\}$ at fixed position sizes.
+
+\paragraph{Reward design} 
+The reward $r_t$ is the realized log-return of the
+portfolio over the holding period, optionally adjusted by a risk penalty.
+\section{D-IQN-DSS: The Decision Engine}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Hierarchical Decision Policy (HDP)}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Epistemic Uncertainty via EDL}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{The Fusion Rule}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Risk-Sensitive Decision Scoring}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Scope and Limitations}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Experimental Design}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\section{Evaluation Protocol}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\paragraph{Point-in-time walk-forward backtesting.}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar
+
+\paragraph{Metrics.}
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi ar

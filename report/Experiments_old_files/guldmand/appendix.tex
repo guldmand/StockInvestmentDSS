@@ -1,0 +1,42 @@
+\chapter{Boxes}
+Temporary appendix material.
+
+\section{Box gallery}
+\begin{definition}[Risk-sensitive policy]
+A policy $\pi_\beta$ is risk-sensitive if it maximizes a distorted expectation
+$Q_\beta(x,a)$ rather than the plain expectation $\mathbb{E}[Z^\pi(x,a)]$.
+\end{definition}
+
+\begin{theorem}[Bellman optimality]
+The optimal action-value function $Q^*$ is the unique fixed point of the Bellman
+optimality operator $\mathcal{T}$, satisfying $Q^* = \mathcal{T}Q^*$.
+\end{theorem}
+
+\begin{proposition}[Monotonicity of the distortion]
+If $\beta$ is a non-decreasing distortion function, then the induced risk measure
+preserves stochastic dominance between return distributions.
+\end{proposition}
+
+\begin{example}[Conditional Value-at-Risk]
+Setting $\beta(\tau) = \min(\tau/\eta,\, 1)$ recovers $\mathrm{CVaR}_\eta$, which
+averages the worst $\eta$-fraction of outcomes and yields a risk-averse policy.
+\end{example}
+
+\begin{remark}
+In practice the quantile samples $\tau \sim U([0,1])$ are drawn independently for
+the online and target networks, which decorrelates the temporal-difference error.
+\end{remark}
+
+\section{Experiment Configuration}
+Lorem ipsum...
+
+\section{Additional Tables}
+Lorem ipsum...
+
+\section{Experiment Configuration}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer facilisis, erat vel porttitor volutpat, neque erat dignissim ipsum, vitae commodo ligula turpis sed nulla.
+
+\section{Additional Tables}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer facilisis, erat vel porttitor volutpat, neque erat dignissim ipsum, vitae commodo ligula turpis sed nulla.

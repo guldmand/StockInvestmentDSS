@@ -1,0 +1,108 @@
+Definition
+
+R 173
+G 212
+B 251
+
+
+Proposition
+
+R 200
+G 158
+B 222
+
+Example
+
+R 152
+G 191
+B 187
+
+Theorem
+
+R 214
+G 155
+B 149
+
+Remark / Lemma / Notation
+
+R 210
+G 210
+B 167
+
+
+Blok baggrundsfarver
+
+R 242
+G 242
+B 242
+
+
+
+---------------
+
+
+ret:
+\newenvironment{corollary}{\begin{box@thm}\begin{corollaryInner}}{\end{corollaryInner}\end{box@thm}}
+
+til:
+\newenvironment{corollary}{\begin{box@prop}\begin{corollaryInner}}{\end{corollaryInner}\end{box@prop}}
+
+
+all boxes:
+
+% --- Seiberg-style theorem boxes (five colors) ---
+\definecolor{ColDefinition}{RGB}{173,212,251}
+\definecolor{ColProposition}{RGB}{200,158,222}
+\definecolor{ColExample}{RGB}{152,191,187}
+\definecolor{ColTheorem}{RGB}{214,155,149}
+\definecolor{ColRemark}{RGB}{210,210,167}
+\definecolor{BoxGrayBg}{RGB}{242,242,242}
+
+\theoremstyle{definition}
+\newtheorem{theoremInner}{Theorem}[section]
+\newtheorem{definitionInner}[theoremInner]{Definition}
+\newtheorem{propositionInner}[theoremInner]{Proposition}
+\newtheorem{corollaryInner}[theoremInner]{Corollary}
+\newtheorem{lemmaInner}[theoremInner]{Lemma}
+\newtheorem{exampleInner}[theoremInner]{Example}
+\newtheorem{remarkInner}[theoremInner]{Remark}
+\newtheorem*{notationInner}{Notation}
+
+\newtcolorbox{box@def}[1][]{enhanced,breakable,colback=BoxGrayBg,colframe=ColDefinition,boxrule=0pt,leftrule=4pt,sharp corners,left=10pt,right=10pt,top=8pt,bottom=8pt,#1}
+\newtcolorbox{box@prop}[1][]{enhanced,breakable,colback=BoxGrayBg,colframe=ColProposition,boxrule=0pt,leftrule=4pt,sharp corners,left=10pt,right=10pt,top=8pt,bottom=8pt,#1}
+\newtcolorbox{box@ex}[1][]{enhanced,breakable,colback=BoxGrayBg,colframe=ColExample,boxrule=0pt,leftrule=4pt,sharp corners,left=10pt,right=10pt,top=8pt,bottom=8pt,#1}
+\newtcolorbox{box@thm}[1][]{enhanced,breakable,colback=BoxGrayBg,colframe=ColTheorem,boxrule=0pt,leftrule=4pt,sharp corners,left=10pt,right=10pt,top=8pt,bottom=8pt,#1}
+\newtcolorbox{box@rem}[1][]{enhanced,breakable,colback=BoxGrayBg,colframe=ColRemark,boxrule=0pt,leftrule=4pt,sharp corners,left=10pt,right=10pt,top=8pt,bottom=8pt,#1}
+
+% Definition = blue
+\newenvironment{definition}{\begin{box@def}\begin{definitionInner}}{\end{definitionInner}\end{box@def}}
+% Proposition AND Corollary = purple
+\newenvironment{proposition}{\begin{box@prop}\begin{propositionInner}}{\end{propositionInner}\end{box@prop}}
+\newenvironment{corollary}{\begin{box@prop}\begin{corollaryInner}}{\end{corollaryInner}\end{box@prop}}
+% Example = teal
+\newenvironment{example}{\begin{box@ex}\begin{exampleInner}}{\end{exampleInner}\end{box@ex}}
+% Theorem = red
+\newenvironment{theorem}{\begin{box@thm}\begin{theoremInner}}{\end{theoremInner}\end{box@thm}}
+% Remark / Lemma / Notation = olive
+\newenvironment{lemma}{\begin{box@rem}\begin{lemmaInner}}{\end{lemmaInner}\end{box@rem}}
+\newenvironment{remark}{\begin{box@rem}\begin{remarkInner}}{\end{remarkInner}\end{box@rem}}
+\newenvironment{notation}{\begin{box@rem}\begin{notationInner}}{\end{notationInner}\end{box@rem}}
+
+
+
+
+--------------
+
+
+Big Chapter number / Box
+
+
+https://tex.stackexchange.com/questions/117988/fancy-chapter-headings-onesided-version
+
+https://www.reddit.com/r/LaTeX/comments/14uemx9/chapter_number_formatting/
+https://tex.stackexchange.com/questions/680068/writing-chapter-number-using-tikz/680071#680071
+
+
+https://tex.stackexchange.com/questions/438364/edit-box-with-current-chapter-number-on-each-page-margin
+
+https://tex.stackexchange.com/questions/579818/how-to-display-big-chapter-number-right-aligned-with-paragraph-without-titlesec
