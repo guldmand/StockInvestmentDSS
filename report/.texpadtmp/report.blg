@@ -1,0 +1,9 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is '/Users/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/report/.texpadtmp/report.blg'
+[23] biber-darwin:342> INFO - === Sun May 31, 2026, 11:23:13
+[29] Biber.pm:421> INFO - Reading '/Users/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/report/.texpadtmp/report.bcf'
+[54] Biber.pm:1002> INFO - Found 0 citekeys in bib section 0
+[59] bbl.pm:676> INFO - Writing '/Users/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/report/.texpadtmp/report.bbl' with encoding 'UTF-8'
+[59] bbl.pm:779> INFO - Output to /Users/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/report/.texpadtmp/report.bbl
+[59] Biber.pm:132> WARN - The file '/Users/guldmand/Dropbox/DataScience/Speciale/Devices/dev/StockInvestmentDSS/report/.texpadtmp/report.bcf' does not contain any citations!
+[59] Biber.pm:134> INFO - WARNINGS: 1
